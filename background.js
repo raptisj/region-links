@@ -1,14 +1,14 @@
-// Background service worker for Regional Link Extractor
+// Background service worker for RegionLinks
 
 // Listen for extension installation
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
-    console.log('Regional Link Extractor installed');
+    console.log('RegionLinks installed');
 
     // Set default export mode
     chrome.storage.sync.set({ exportMode: 'urls' });
   } else if (details.reason === 'update') {
-    console.log('Regional Link Extractor updated');
+    console.log('RegionLinks updated');
   }
 });
 

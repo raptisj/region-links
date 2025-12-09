@@ -1,4 +1,4 @@
-# Regional Link Extract
+# RegionLinks
 
 A Chrome extension that allows you to select a rectangular region on any web page and extract all links within that region. Export the links in multiple formats: URLs only, Text + URL, Markdown list, or CSV.
 
@@ -61,7 +61,7 @@ A Chrome extension that allows you to select a rectangular region on any web pag
 You can assign a keyboard shortcut to quickly activate the extension:
 
 1. Go to `chrome://extensions/shortcuts`
-2. Find "Regional Link Extract"
+2. Find "RegionLinks"
 3. Click the pencil icon and assign a shortcut (e.g., `Ctrl+Shift+L` or `Cmd+Shift+L`)
 
 ## How to Use
@@ -202,7 +202,7 @@ To publish this extension to the Chrome Web Store:
 
    ```bash
    cd region_link_extract
-   zip -r regional-link-extract.zip . -x "*.git*" -x "*.DS_Store" -x "instructions.md"
+   zip -r regionlinks.zip . -x "*.git*" -x "*.DS_Store" -x "instructions.md"
    ```
 
 4. **Upload to Chrome Web Store**:
@@ -246,7 +246,7 @@ You should include this information in your Chrome Web Store listing.
 ### Extension doesn't appear in toolbar
 
 - Go to `chrome://extensions/` and verify the extension is enabled
-- Click the puzzle icon in the toolbar and pin "Regional Link Extract"
+- Click the puzzle icon in the toolbar and pin "RegionLinks"
 
 ### "Could not access current tab" error
 

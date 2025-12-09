@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Regional Link Extractor",
+  "name": "RegionLinks",
   "version": "1.0.0",
   "description": "Select a rectangular region on any web page and extract all links within that region. Export as URLs, CSV, Markdown, or structured text.",
   "permissions": [

@@ -1,4 +1,4 @@
-# Regional Link Extractor
+# Regional Link Extract
 
 A Chrome extension that allows you to select a rectangular region on any web page and extract all links within that region. Export the links in multiple formats: URLs only, Text + URL, Markdown list, or CSV.
 
@@ -24,6 +24,7 @@ A Chrome extension that allows you to select a rectangular region on any web pag
 2. **Generate high-quality icons** (optional, for better appearance):
 
    The extension includes placeholder icons, but for best quality:
+
    - Open `icons/convert-svg-to-png.html` in your browser
    - Click "Download All Icons"
    - Replace the placeholder PNG files in the `icons/` folder
@@ -31,14 +32,17 @@ A Chrome extension that allows you to select a rectangular region on any web pag
    This converts the SVG icon to properly sized PNGs for the toolbar and extensions page.
 
 3. **Open Chrome Extensions Page**:
+
    - Open Chrome browser
    - Navigate to `chrome://extensions/`
    - Or click the three-dot menu → More Tools → Extensions
 
 4. **Enable Developer Mode**:
+
    - Toggle the "Developer mode" switch in the top-right corner
 
 5. **Load the Extension**:
+
    - Click "Load unpacked" button
    - Navigate to and select the `region_link_extract` folder
    - The extension should now appear in your extensions list
@@ -57,7 +61,7 @@ A Chrome extension that allows you to select a rectangular region on any web pag
 You can assign a keyboard shortcut to quickly activate the extension:
 
 1. Go to `chrome://extensions/shortcuts`
-2. Find "Regional Link Extractor"
+2. Find "Regional Link Extract"
 3. Click the pencil icon and assign a shortcut (e.g., `Ctrl+Shift+L` or `Cmd+Shift+L`)
 
 ## How to Use
@@ -74,11 +78,13 @@ You can assign a keyboard shortcut to quickly activate the extension:
 ### Export Format Examples
 
 **URLs Only (comma-separated):**
+
 ```
 https://example.com/page1, https://example.com/page2, https://example.com/page3
 ```
 
 **Text + URL (tab-separated):**
+
 ```
 Link Text 1    https://example.com/page1
 Link Text 2    https://example.com/page2
@@ -86,6 +92,7 @@ Link Text 3    https://example.com/page3
 ```
 
 **Markdown List:**
+
 ```markdown
 - [Link Text 1](https://example.com/page1)
 - [Link Text 2](https://example.com/page2)
@@ -93,6 +100,7 @@ Link Text 3    https://example.com/page3
 ```
 
 **CSV:**
+
 ```csv
 "Text","URL"
 "Link Text 1","https://example.com/page1"
@@ -129,7 +137,6 @@ region_link_extract/
 │   ├── icon48.png         # 48x48 extensions page icon
 │   ├── icon128.png        # 128x128 web store icon
 │   ├── icon.svg           # Source SVG file
-│   └── convert-svg-to-png.html   # SVG to PNG converter tool
 ├── instructions.md        # Development plan
 └── README.md             # This file
 ```
@@ -146,10 +153,12 @@ region_link_extract/
 ### Key Components
 
 1. **Popup** (`popup.html`, `popup.js`):
+
    - User interface for selecting export mode
    - Triggers content script injection
 
 2. **Content Script** (`content.js`, `content.css`):
+
    - Creates overlay for region selection
    - Detects link intersections using `getBoundingClientRect()`
    - Manages results panel
@@ -174,10 +183,12 @@ region_link_extract/
 To publish this extension to the Chrome Web Store:
 
 1. **Create a Chrome Web Store Developer Account**:
+
    - Go to [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole)
    - Pay the one-time $5 registration fee
 
 2. **Prepare Your Extension Package**:
+
    - Ensure all files are finalized
    - Test thoroughly on different websites
    - Create high-quality icons (use the provided generators)
@@ -188,12 +199,14 @@ To publish this extension to the Chrome Web Store:
      - Screenshots: 1280x800 or 640x400 pixels
 
 3. **Create a ZIP Package**:
+
    ```bash
    cd region_link_extract
-   zip -r regional-link-extractor.zip . -x "*.git*" -x "*.DS_Store" -x "instructions.md"
+   zip -r regional-link-extract.zip . -x "*.git*" -x "*.DS_Store" -x "instructions.md"
    ```
 
 4. **Upload to Chrome Web Store**:
+
    - Go to the Developer Dashboard
    - Click "New Item"
    - Upload the ZIP file
@@ -207,6 +220,7 @@ To publish this extension to the Chrome Web Store:
    - Select target countries/regions
 
 5. **Submit for Review**:
+
    - Review all information
    - Click "Submit for review"
    - Wait for Chrome Web Store review (typically 1-3 days)
@@ -219,6 +233,7 @@ To publish this extension to the Chrome Web Store:
 ### Privacy Policy Note
 
 This extension:
+
 - Does NOT collect any user data
 - Does NOT send any information to external servers
 - Only uses `chrome.storage.sync` to save user preferences locally
@@ -229,24 +244,29 @@ You should include this information in your Chrome Web Store listing.
 ## Troubleshooting
 
 ### Extension doesn't appear in toolbar
+
 - Go to `chrome://extensions/` and verify the extension is enabled
-- Click the puzzle icon in the toolbar and pin "Regional Link Extractor"
+- Click the puzzle icon in the toolbar and pin "Regional Link Extract"
 
 ### "Could not access current tab" error
+
 - Make sure you're not on a Chrome internal page (chrome://, chrome-extension://)
 - Try refreshing the web page
 
 ### Selection doesn't start
+
 - Make sure the extension has loaded properly
 - Check the browser console for errors (F12 → Console)
 - Try reloading the extension from `chrome://extensions/`
 
 ### Links not detected
+
 - Ensure the links are visible on the page (not hidden)
 - Try making your selection area larger
 - Some links might be inside iframes (not currently supported)
 
 ### Clipboard copy fails
+
 - Grant clipboard permissions when prompted
 - If automatic copy fails, a fallback dialog will appear with the text to copy manually
 

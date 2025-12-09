@@ -1,4 +1,3 @@
-// Global state - only initialize if not already present
 if (typeof window.RLE_STATE === "undefined") {
   window.RLE_STATE = {
     isActive: false,
@@ -13,10 +12,8 @@ if (typeof window.RLE_STATE === "undefined") {
 }
 const state = window.RLE_STATE;
 
-// Listen for messages from popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "PING") {
-    // Respond to ping to indicate script is loaded
     sendResponse({ loaded: true });
   } else if (message.action === "START_SELECTION") {
     startSelection(message.exportMode);
@@ -28,7 +25,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
-// Start selection mode
 function startSelection(exportMode) {
   if (state.isActive) {
     return;
@@ -41,9 +37,7 @@ function startSelection(exportMode) {
   attachEventListeners();
 }
 
-// Create transparent overlay
 function createOverlay() {
-  // Remove existing overlay if any
   if (state.overlay) {
     state.overlay.remove();
   }
@@ -53,13 +47,11 @@ function createOverlay() {
   state.overlay.className = "rle-overlay";
   document.body.appendChild(state.overlay);
 
-  // Create selection box
   state.selectionBox = document.createElement("div");
   state.selectionBox.id = "rle-selection-box";
   state.selectionBox.className = "rle-selection-box";
   state.overlay.appendChild(state.selectionBox);
 
-  // Add instruction text with export mode
   const instruction = document.createElement("div");
   instruction.className = "rle-instruction";
 
@@ -79,7 +71,6 @@ function createOverlay() {
   state.overlay.appendChild(instruction);
 }
 
-// Attach event listeners
 function attachEventListeners() {
   state.overlay.addEventListener("mousedown", handleMouseDown);
   state.overlay.addEventListener("mousemove", handleMouseMove);
@@ -87,7 +78,6 @@ function attachEventListeners() {
   document.addEventListener("keydown", handleKeyDown);
 }
 
-// Remove event listeners
 function removeEventListeners() {
   if (state.overlay) {
     state.overlay.removeEventListener("mousedown", handleMouseDown);
@@ -97,7 +87,6 @@ function removeEventListeners() {
   document.removeEventListener("keydown", handleKeyDown);
 }
 
-// Handle mouse down
 function handleMouseDown(e) {
   e.preventDefault();
   e.stopPropagation();
@@ -112,7 +101,6 @@ function handleMouseDown(e) {
   state.selectionBox.style.display = "block";
 }
 
-// Handle mouse move
 function handleMouseMove(e) {
   if (!state.selectionBox || state.selectionBox.style.display !== "block") {
     return;
@@ -135,7 +123,6 @@ function handleMouseMove(e) {
   state.selectionBox.style.height = height + "px";
 }
 
-// Handle mouse up
 function handleMouseUp(e) {
   if (!state.selectionBox || state.selectionBox.style.display !== "block") {
     return;
@@ -157,23 +144,19 @@ function handleMouseUp(e) {
     height: parseFloat(state.selectionBox.style.height),
   };
 
-  // Only process if selection has meaningful size
   if (selectionRect.width > 10 && selectionRect.height > 10) {
     extractLinks(selectionRect);
   }
 
-  // Clean up overlay
   removeOverlay();
 }
 
-// Handle ESC key
 function handleKeyDown(e) {
   if (e.key === "Escape") {
     cancelSelection();
   }
 }
 
-// Extract links from selection
 function extractLinks(selectionRect) {
   const anchors = document.querySelectorAll("a[href]");
   const extractedLinks = [];
@@ -181,7 +164,6 @@ function extractLinks(selectionRect) {
   anchors.forEach((anchor, index) => {
     const rect = anchor.getBoundingClientRect();
 
-    // Check if link intersects with selection
     const intersects = !(
       rect.right < selectionRect.left ||
       rect.left > selectionRect.right ||
@@ -190,17 +172,71 @@ function extractLinks(selectionRect) {
     );
 
     if (intersects) {
-      // Skip hidden elements
       if (rect.width === 0 || rect.height === 0) {
         return;
       }
 
-      const text = (
-        anchor.innerText ||
-        anchor.textContent ||
-        anchor.getAttribute("title") ||
-        ""
-      ).trim();
+      let text = (anchor.innerText || anchor.textContent || "").trim();
+
+      // Check for aria-label and title on the anchor
+      if (!text) {
+        text =
+          anchor.getAttribute("aria-label") ||
+          anchor.getAttribute("title") ||
+          "";
+      }
+
+      // Check for image alt/title text
+      if (!text) {
+        const img = anchor.querySelector("img");
+        if (img) {
+          text = img.getAttribute("alt") || img.getAttribute("title") || "";
+        }
+      }
+
+      // Check for SVG title element
+      if (!text) {
+        const svg = anchor.querySelector("svg");
+        if (svg) {
+          const titleElement = svg.querySelector("title");
+          if (titleElement) {
+            text = titleElement.textContent || "";
+          }
+          if (!text) {
+            text = svg.getAttribute("aria-label") || "";
+          }
+        }
+      }
+
+      // Fallback: extract meaningful part from URL
+      if (!text) {
+        try {
+          const urlObj = new URL(anchor.href);
+          const hostname = urlObj.hostname.replace(/^www\./, "");
+          const pathParts = urlObj.pathname.split("/").filter((p) => p);
+
+          // Capitalize and format domain name nicely
+          const domainParts = hostname.split(".");
+          const mainDomain =
+            domainParts.length > 1
+              ? domainParts[domainParts.length - 2]
+              : domainParts[0];
+          const capitalizedDomain =
+            mainDomain.charAt(0).toUpperCase() + mainDomain.slice(1);
+
+          // Use domain + first meaningful path segment if available
+          if (pathParts.length > 0) {
+            const pathLabel = pathParts[0].charAt(0).toUpperCase() + pathParts[0].slice(1);
+            text = `${capitalizedDomain} - ${pathLabel}`;
+          } else {
+            text = capitalizedDomain;
+          }
+        } catch (e) {
+          text = "Link";
+        }
+      }
+
+      text = text.trim();
       const url = anchor.href;
 
       extractedLinks.push({
@@ -215,7 +251,6 @@ function extractLinks(selectionRect) {
 
   state.extractedLinks = extractedLinks;
 
-  // Show results panel
   if (extractedLinks.length > 0) {
     showResultsPanel(extractedLinks);
   } else {
@@ -223,9 +258,7 @@ function extractLinks(selectionRect) {
   }
 }
 
-// Show results panel
 function showResultsPanel(links) {
-  // Remove existing panel
   if (state.resultsPanel) {
     state.resultsPanel.remove();
   }
@@ -234,7 +267,6 @@ function showResultsPanel(links) {
   panel.className = "rle-results-panel";
   panel.id = "rle-results-panel";
 
-  // Header
   const header = document.createElement("div");
   header.className = "rle-panel-header";
 
@@ -267,7 +299,6 @@ function showResultsPanel(links) {
   header.appendChild(closeBtn);
   panel.appendChild(header);
 
-  // Links list
   const linksList = document.createElement("div");
   linksList.className = "rle-links-list";
 
@@ -302,7 +333,6 @@ function showResultsPanel(links) {
 
   panel.appendChild(linksList);
 
-  // Actions
   const actions = document.createElement("div");
   actions.className = "rle-panel-actions";
 
@@ -330,7 +360,6 @@ function showResultsPanel(links) {
   state.resultsPanel = panel;
 }
 
-// Show no links message
 function showNoLinksMessage() {
   const panel = document.createElement("div");
   panel.className = "rle-results-panel rle-no-results";
@@ -351,13 +380,11 @@ function showNoLinksMessage() {
   document.body.appendChild(panel);
   state.resultsPanel = panel;
 
-  // Auto-close after 3 seconds
   setTimeout(() => {
     closeResultsPanel();
   }, 3000);
 }
 
-// Toggle all checkboxes
 function toggleAllCheckboxes(checked) {
   const checkboxes = document.querySelectorAll(
     '.rle-links-list input[type="checkbox"]'
@@ -365,7 +392,6 @@ function toggleAllCheckboxes(checked) {
   checkboxes.forEach((cb) => (cb.checked = checked));
 }
 
-// Copy to clipboard
 async function copyToClipboard() {
   const checkboxes = document.querySelectorAll(
     '.rle-links-list input[type="checkbox"]:checked'
@@ -393,7 +419,6 @@ async function copyToClipboard() {
       "success"
     );
 
-    // Close panel after successful copy
     setTimeout(() => {
       closeResultsPanel();
     }, 1500);
@@ -403,7 +428,6 @@ async function copyToClipboard() {
   }
 }
 
-// Format links based on export mode
 function formatLinks(links, mode) {
   switch (mode) {
     case "urls":
@@ -433,7 +457,6 @@ function formatLinks(links, mode) {
   }
 }
 
-// Show fallback copy dialog
 function showFallbackCopyDialog(text) {
   const dialog = document.createElement("div");
   dialog.className = "rle-fallback-dialog";
@@ -458,11 +481,9 @@ function showFallbackCopyDialog(text) {
 
   document.body.appendChild(dialog);
 
-  // Select text
   textarea.select();
 }
 
-// Show toast notification
 function showToast(message, type = "info") {
   const toast = document.createElement("div");
   toast.className = `rle-toast rle-toast-${type}`;
@@ -470,17 +491,14 @@ function showToast(message, type = "info") {
 
   document.body.appendChild(toast);
 
-  // Trigger animation
   setTimeout(() => toast.classList.add("rle-toast-show"), 10);
 
-  // Remove after 3 seconds
   setTimeout(() => {
     toast.classList.remove("rle-toast-show");
     setTimeout(() => toast.remove(), 300);
   }, 3000);
 }
 
-// Close results panel
 function closeResultsPanel() {
   if (state.resultsPanel) {
     state.resultsPanel.remove();
@@ -490,7 +508,6 @@ function closeResultsPanel() {
   state.isActive = false;
 }
 
-// Remove overlay
 function removeOverlay() {
   if (state.overlay) {
     state.overlay.remove();
@@ -501,7 +518,6 @@ function removeOverlay() {
   state.isActive = false;
 }
 
-// Cancel selection
 function cancelSelection() {
   removeOverlay();
   closeResultsPanel();

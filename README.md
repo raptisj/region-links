@@ -2,6 +2,21 @@
 
 A Chrome extension that allows you to select a rectangular region on any web page and extract all links within that region. Export the links in multiple formats: URLs only, Text + URL, Markdown list, or CSV.
 
+## Examples
+
+### URLs only
+https://github.com/user-attachments/assets/5231cbdf-70b5-4095-bcb1-683efe0b149a
+
+### Text + URL
+https://github.com/user-attachments/assets/355c381c-c9cd-45a9-8fc2-a07c67da5eca
+
+### Markdown
+https://github.com/user-attachments/assets/0dee52b6-9b62-49a1-9a1f-464208cc352a
+
+### CSV
+https://github.com/user-attachments/assets/50a4a85a-b768-4e4d-853c-e83324067240
+
+
 ## Features
 
 - **Visual Region Selection**: Click and drag to select any rectangular area on a web page

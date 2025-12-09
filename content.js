@@ -249,10 +249,21 @@ function extractLinks(selectionRect) {
     }
   });
 
-  state.extractedLinks = extractedLinks;
+  // Remove duplicate URLs, keeping only the first occurrence
+  const uniqueLinks = [];
+  const seenUrls = new Set();
 
-  if (extractedLinks.length > 0) {
-    showResultsPanel(extractedLinks);
+  extractedLinks.forEach((link) => {
+    if (!seenUrls.has(link.url)) {
+      seenUrls.add(link.url);
+      uniqueLinks.push(link);
+    }
+  });
+
+  state.extractedLinks = uniqueLinks;
+
+  if (uniqueLinks.length > 0) {
+    showResultsPanel(uniqueLinks);
   } else {
     showNoLinksMessage();
   }

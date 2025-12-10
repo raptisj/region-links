@@ -258,9 +258,33 @@
   color: #999;
 }
 
+.rle-selection-controls {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.rle-selection-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 11px;
+  font-weight: 400;
+  color: #2196F3;
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+.rle-selection-btn:hover {
+  color: #1976D2;
+  text-decoration: underline;
+}
+
 /* Panel actions */
 .rle-panel-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 16px 20px;
   border-top: 1px solid #e0e0e0;
@@ -277,6 +301,8 @@
   cursor: pointer;
   transition: all 0.2s;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  flex: 1;
+  min-width: 0;
 }
 
 .rle-btn-primary {
@@ -304,6 +330,19 @@
 
 .rle-btn-secondary:active {
   background: #c0c0c0;
+}
+
+.rle-btn-template {
+  background: #2196F3;
+  color: white;
+}
+
+.rle-btn-template:hover {
+  background: #1976D2;
+}
+
+.rle-btn-template:active {
+  background: #1565C0;
 }
 
 /* No results message */
@@ -401,4 +440,80 @@
 
 .rle-links-list::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+/* Template dialog */
+.rle-template-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  z-index: 2147483647;
+  width: 400px;
+  max-width: 90vw;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+.rle-template-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #555;
+  margin-bottom: 6px;
+  margin-top: 16px;
+}
+
+.rle-template-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  box-sizing: border-box;
+}
+
+.rle-template-input:focus {
+  outline: none;
+  border-color: #2196F3;
+}
+
+.rle-template-checkbox-label {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  margin-top: 16px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.rle-template-checkbox-label:hover {
+  background: #e9ecef;
+}
+
+.rle-template-checkbox-label input[type="checkbox"] {
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.rle-template-checkbox-label span {
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+}
+
+.rle-template-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.rle-template-buttons .rle-btn {
+  flex: 1;
 }

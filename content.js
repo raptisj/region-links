@@ -11,6 +11,9 @@ if (typeof window.RLE_STATE === "undefined") {
     resultsPanel: null,
     currentFilter: "all",
     customFilterValue: "",
+    lastSelectionRect: null,
+    currentTemplate: null,
+    isAutoRun: false,
   };
 }
 const state = window.RLE_STATE;
@@ -24,6 +27,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   } else if (message.action === "CANCEL_SELECTION") {
     cancelSelection();
     sendResponse({ success: true });
+  } else if (message.action === "RUN_TEMPLATE") {
+    runTemplate(message.template, message.template.autoRun);
+    sendResponse({ success: true });
+  } else if (message.action === "GET_TEMPLATES") {
+    getTemplatesForDomain(message.domain).then((templates) => {
+      sendResponse({ templates });
+    });
+    return true; // Keep channel open for async response
   }
   return true;
 });
@@ -35,6 +46,7 @@ function startSelection(exportMode, cleanUrls) {
 
   state.exportMode = exportMode || "urls";
   state.cleanUrls = cleanUrls || false;
+  state.currentTemplate = null; // Reset template when starting manual selection
   state.isActive = true;
 
   createOverlay();
@@ -149,6 +161,7 @@ function handleMouseUp(e) {
   };
 
   if (selectionRect.width > 10 && selectionRect.height > 10) {
+    state.lastSelectionRect = selectionRect;
     extractLinks(selectionRect);
   }
 
@@ -285,6 +298,15 @@ function normalizeUrl(rawUrl) {
 }
 
 function extractLinks(selectionRect) {
+  console.log("[RegionLinks] extractLinks called, state.isAutoRun:", state.isAutoRun);
+
+  // Validate selectionRect
+  if (!selectionRect || typeof selectionRect.left === 'undefined') {
+    console.error("Invalid selectionRect:", selectionRect);
+    showToast("Error: Invalid selection area", "error");
+    return;
+  }
+
   const anchors = document.querySelectorAll("a[href]");
   const extractedLinks = [];
 
@@ -390,9 +412,43 @@ function extractLinks(selectionRect) {
   state.extractedLinks = uniqueLinks;
 
   if (uniqueLinks.length > 0) {
-    showResultsPanel(uniqueLinks);
+    // If auto-run, return links for popup to copy
+    if (state.isAutoRun) {
+      console.log("[RegionLinks] Auto-run extraction complete, storing for popup");
+
+      // Apply filters
+      const filteredLinks = getFilteredLinks();
+      console.log("[RegionLinks] Filtered to", filteredLinks.length, "links");
+
+      if (filteredLinks.length === 0) {
+        console.log("[RegionLinks] No links after filtering");
+        showToast("No links match current filters", "error");
+        state.isAutoRun = false;
+        return;
+      }
+
+      const formattedText = formatLinks(filteredLinks, state.exportMode);
+
+      // Store for popup to retrieve and copy
+      chrome.storage.local.set({
+        pendingAutoCopy: {
+          text: formattedText,
+          count: filteredLinks.length,
+          timestamp: Date.now()
+        }
+      });
+      console.log("[RegionLinks] Stored", filteredLinks.length, "links in pendingAutoCopy");
+      state.isAutoRun = false;
+    } else {
+      showResultsPanel(uniqueLinks);
+    }
   } else {
-    showNoLinksMessage();
+    if (state.isAutoRun) {
+      showToast("No links found in saved region", "error");
+      state.isAutoRun = false;
+    } else {
+      showNoLinksMessage();
+    }
   }
 }
 
@@ -598,8 +654,26 @@ function showResultsPanel(links) {
   filterControls.appendChild(externalBtn);
   filterControls.appendChild(customInput);
 
+  // Selection controls (Select All / Deselect All)
+  const selectionControls = document.createElement("div");
+  selectionControls.className = "rle-selection-controls";
+
+  const selectAllBtn = document.createElement("button");
+  selectAllBtn.className = "rle-selection-btn";
+  selectAllBtn.textContent = "Select All";
+  selectAllBtn.onclick = () => toggleAllCheckboxes(true);
+
+  const deselectAllBtn = document.createElement("button");
+  deselectAllBtn.className = "rle-selection-btn";
+  deselectAllBtn.textContent = "Deselect All";
+  deselectAllBtn.onclick = () => toggleAllCheckboxes(false);
+
+  selectionControls.appendChild(selectAllBtn);
+  selectionControls.appendChild(deselectAllBtn);
+
   filterSection.appendChild(filterLabel);
   filterSection.appendChild(filterControls);
+  filterSection.appendChild(selectionControls);
   panel.appendChild(filterSection);
 
   const linksList = document.createElement("div");
@@ -639,24 +713,18 @@ function showResultsPanel(links) {
   const actions = document.createElement("div");
   actions.className = "rle-panel-actions";
 
-  const selectAllBtn = document.createElement("button");
-  selectAllBtn.className = "rle-btn rle-btn-secondary";
-  selectAllBtn.textContent = "Select All";
-  selectAllBtn.onclick = () => toggleAllCheckboxes(true);
-
-  const deselectAllBtn = document.createElement("button");
-  deselectAllBtn.className = "rle-btn rle-btn-secondary";
-  deselectAllBtn.textContent = "Deselect All";
-  deselectAllBtn.onclick = () => toggleAllCheckboxes(false);
-
   const copyBtn = document.createElement("button");
   copyBtn.className = "rle-btn rle-btn-primary";
   copyBtn.textContent = "Copy to Clipboard";
   copyBtn.onclick = () => copyToClipboard();
 
-  actions.appendChild(selectAllBtn);
-  actions.appendChild(deselectAllBtn);
+  const saveTemplateBtn = document.createElement("button");
+  saveTemplateBtn.className = "rle-btn rle-btn-template";
+  saveTemplateBtn.textContent = state.currentTemplate ? "Edit Template" : "Save as Template";
+  saveTemplateBtn.onclick = () => showTemplateSaveDialog();
+
   actions.appendChild(copyBtn);
+  actions.appendChild(saveTemplateBtn);
   panel.appendChild(actions);
 
   document.body.appendChild(panel);
@@ -829,6 +897,206 @@ function showToast(message, type = "info") {
   }, 3000);
 }
 
+function showTemplateSaveDialog() {
+  const isEditing = !!state.currentTemplate;
+  const dialog = document.createElement("div");
+  dialog.className = "rle-template-dialog";
+
+  const title = document.createElement("div");
+  title.className = "rle-dialog-title";
+  title.textContent = isEditing ? "Edit Extraction Template" : "Save Extraction Template";
+
+  const nameLabel = document.createElement("label");
+  nameLabel.className = "rle-template-label";
+  nameLabel.textContent = "Template Name:";
+
+  const nameInput = document.createElement("input");
+  nameInput.type = "text";
+  nameInput.className = "rle-template-input";
+  nameInput.placeholder = "e.g., Company Directory Extract";
+  nameInput.value = isEditing
+    ? state.currentTemplate.name
+    : `${new URL(window.location.href).hostname} Links`;
+
+  const autoRunLabel = document.createElement("label");
+  autoRunLabel.className = "rle-template-checkbox-label";
+
+  const autoRunCheckbox = document.createElement("input");
+  autoRunCheckbox.type = "checkbox";
+  autoRunCheckbox.id = "rle-template-autorun";
+  autoRunCheckbox.checked = isEditing ? state.currentTemplate.autoRun : false;
+
+  const autoRunText = document.createElement("span");
+  autoRunText.textContent = "Auto-run this template when I visit this site";
+
+  autoRunLabel.appendChild(autoRunCheckbox);
+  autoRunLabel.appendChild(autoRunText);
+
+  const buttons = document.createElement("div");
+  buttons.className = "rle-template-buttons";
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.className = "rle-btn rle-btn-secondary";
+  cancelBtn.textContent = "Cancel";
+  cancelBtn.onclick = () => dialog.remove();
+
+  const saveBtn = document.createElement("button");
+  saveBtn.className = "rle-btn rle-btn-primary";
+  saveBtn.textContent = isEditing ? "Update Template" : "Save Template";
+  saveBtn.onclick = async () => {
+    const templateName = nameInput.value.trim();
+    if (!templateName) {
+      showToast("Please enter a template name", "error");
+      return;
+    }
+
+    // Check for duplicate names
+    const isDuplicate = await checkDuplicateTemplateName(
+      templateName,
+      isEditing ? state.currentTemplate.id : null
+    );
+
+    if (isDuplicate) {
+      showToast("A template with this name already exists", "error");
+      return;
+    }
+
+    if (isEditing) {
+      await updateTemplate(state.currentTemplate.id, templateName, autoRunCheckbox.checked);
+      showToast("Template updated successfully!", "success");
+    } else {
+      await saveTemplate(templateName, autoRunCheckbox.checked);
+      showToast("Template saved successfully!", "success");
+    }
+
+    dialog.remove();
+  };
+
+  buttons.appendChild(cancelBtn);
+  buttons.appendChild(saveBtn);
+
+  dialog.appendChild(title);
+  dialog.appendChild(nameLabel);
+  dialog.appendChild(nameInput);
+  dialog.appendChild(autoRunLabel);
+  dialog.appendChild(buttons);
+
+  document.body.appendChild(dialog);
+  nameInput.focus();
+  nameInput.select();
+}
+
+async function checkDuplicateTemplateName(name, excludeId = null) {
+  const currentDomain = new URL(window.location.href).hostname;
+  const result = await chrome.storage.local.get(["templates"]);
+  const templates = result.templates || [];
+
+  return templates.some(
+    (t) =>
+      t.domain === currentDomain &&
+      t.name.toLowerCase() === name.toLowerCase() &&
+      t.id !== excludeId
+  );
+}
+
+async function saveTemplate(templateName, autoRun) {
+  // Validate we have a valid selection to save
+  if (!state.lastSelectionRect || typeof state.lastSelectionRect.left === 'undefined') {
+    console.error("Cannot save template: no valid selection area");
+    showToast("Error: No valid selection area to save", "error");
+    return;
+  }
+
+  const currentDomain = new URL(window.location.href).hostname;
+
+  const template = {
+    id: Date.now().toString(),
+    name: templateName,
+    domain: currentDomain,
+    autoRun: autoRun,
+    selectionRect: state.lastSelectionRect,
+    exportMode: state.exportMode,
+    cleanUrls: state.cleanUrls,
+    currentFilter: state.currentFilter,
+    customFilterValue: state.customFilterValue,
+    createdAt: new Date().toISOString(),
+  };
+
+  // Get existing templates
+  const result = await chrome.storage.local.get(["templates"]);
+  const templates = result.templates || [];
+
+  // Add new template
+  templates.push(template);
+
+  // Save back to storage
+  await chrome.storage.local.set({ templates });
+
+  // Update current template reference
+  state.currentTemplate = template;
+}
+
+async function updateTemplate(templateId, templateName, autoRun) {
+  const result = await chrome.storage.local.get(["templates"]);
+  const templates = result.templates || [];
+
+  const templateIndex = templates.findIndex((t) => t.id === templateId);
+
+  if (templateIndex !== -1) {
+    // Update template properties
+    templates[templateIndex].name = templateName;
+    templates[templateIndex].autoRun = autoRun;
+
+    // Only update selectionRect if a new selection was made
+    // Otherwise preserve the existing one
+    if (state.lastSelectionRect && typeof state.lastSelectionRect.left !== 'undefined') {
+      templates[templateIndex].selectionRect = state.lastSelectionRect;
+    }
+
+    // Update other settings
+    templates[templateIndex].exportMode = state.exportMode;
+    templates[templateIndex].cleanUrls = state.cleanUrls;
+    templates[templateIndex].currentFilter = state.currentFilter;
+    templates[templateIndex].customFilterValue = state.customFilterValue;
+    templates[templateIndex].updatedAt = new Date().toISOString();
+
+    // Save back to storage
+    await chrome.storage.local.set({ templates });
+
+    // Update current template reference
+    state.currentTemplate = templates[templateIndex];
+  }
+}
+
+async function getTemplatesForDomain(domain) {
+  const result = await chrome.storage.local.get(["templates"]);
+  const templates = result.templates || [];
+  return templates.filter((t) => t.domain === domain);
+}
+
+async function runTemplate(template, isAutoRunning = false) {
+  console.log("[RegionLinks] runTemplate called, isAutoRunning:", isAutoRunning, "template.autoRun:", template.autoRun);
+
+  // Validate template has a valid selectionRect
+  if (!template.selectionRect || typeof template.selectionRect.left === 'undefined') {
+    console.error("Template missing valid selectionRect:", template);
+    showToast("Error: This template has invalid selection data. Please recreate it.", "error");
+    return;
+  }
+
+  state.exportMode = template.exportMode;
+  state.cleanUrls = template.cleanUrls;
+  state.currentFilter = template.currentFilter || "all";
+  state.customFilterValue = template.customFilterValue || "";
+  state.currentTemplate = template;
+  state.isAutoRun = isAutoRunning;
+
+  console.log("[RegionLinks] State updated, state.isAutoRun:", state.isAutoRun);
+  console.log("[RegionLinks] Calling extractLinks with rect:", template.selectionRect);
+
+  extractLinks(template.selectionRect);
+}
+
 function closeResultsPanel() {
   if (state.resultsPanel) {
     state.resultsPanel.remove();
@@ -837,6 +1105,8 @@ function closeResultsPanel() {
   state.extractedLinks = [];
   state.currentFilter = "all";
   state.customFilterValue = "";
+  state.currentTemplate = null;
+  state.isAutoRun = false;
   state.isActive = false;
 }
 

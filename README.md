@@ -2,6 +2,8 @@
 
 A Chrome extension that allows you to select a rectangular region on any web page and extract all links within that region. Perfect for sales prospecting, research, and content curation. Export links in multiple formats optimized for CRMs, emails, and documentation.
 
+**NEW: Saved Extraction Templates** - Save your extraction settings per website. Auto-run templates extract and copy with one click (no results panel). Manual templates show results for review. Transform 30-second workflows into 2 seconds!
+
 ## Examples
 
 ### URLs only
@@ -27,6 +29,7 @@ https://github.com/user-attachments/assets/50a4a85a-b768-4e4d-853c-e83324067240
   - CSV format (CRM-ready with name, url, source_page columns)
 - **URL Normalization**: Optional feature to strip tracking parameters (utm\_\*, gclid, fbclid, etc.) for cleaner URLs
 - **Smart Filtering**: Filter extracted links by internal/external domains or custom keywords
+- **Saved Extraction Templates**: Save your extraction settings and auto-run them on future visits (Premium feature)
 - **Interactive Results Panel**: Review, filter, and deselect links before copying
 - **Keyboard Shortcuts**: Press Alt+Shift+S to instantly start selection, ESC to cancel
 - **Settings Persistence**: Your preferred export format and settings are remembered
@@ -43,7 +46,8 @@ https://github.com/user-attachments/assets/50a4a85a-b768-4e4d-853c-e83324067240
 5. **Draw a rectangle** by clicking and dragging on the web page
 6. **Review the extracted links** in the results panel
 7. **(Optional) Apply filters** to show only internal, external, or specific links
-8. **Copy to clipboard** or adjust your selection
+8. **(Optional) Save as Template** to reuse this extraction on future visits
+9. **Copy to clipboard** or adjust your selection
 
 ### Keyboard Shortcut
 
@@ -92,6 +96,74 @@ This is perfect for:
 
 The count updates dynamically to show filtered results vs. total extracted links.
 
+### Saved Extraction Templates (Power Feature)
+
+Save time by creating reusable extraction templates. This feature is perfect for repetitive link extraction tasks.
+
+#### How It Works:
+
+1. **Extract links once** using region selection
+2. **Apply your filters** (internal/external/custom keywords)
+3. **Click "Save as Template"** in the results panel
+4. **Name your template** (e.g., "Company Directory Extract", "LinkedIn Search Results")
+5. **Enable auto-run** (optional) to automatically extract on future visits
+
+#### What Gets Saved:
+
+- Selected region coordinates
+- Export format (CSV, Markdown, Text+URL, etc.)
+- URL cleaning settings
+- Applied filters (internal/external/custom)
+- Current page domain
+
+#### Using Templates:
+
+**Manual Run:**
+- Open the extension popup on the same website
+- See your saved templates listed
+- Click any template to run it instantly
+- After running, click "Edit Template" to modify settings (including enabling auto-run)
+
+**Auto-Run (Premium):**
+- Enable "Auto-run this template when I visit this site" when saving
+- Open extension popup → click template → links extract and copy automatically (no results panel!)
+- One-click workflow: open popup → click template → done (copied to clipboard)
+- Manual templates still show results panel for review/filtering
+- Perfect for rapid data collection workflows
+
+**Editing Templates:**
+- Run any template manually from the popup
+- In the results panel, click "Edit Template" (instead of "Save as Template")
+- Update the name or toggle auto-run on/off
+- Click "Update Template" to save changes
+- Template names must be unique per domain
+
+#### Perfect For:
+
+- **Sales Prospecting**: Save templates for company directories, vendor lists, partner pages
+- **Recruiting**: Extract LinkedIn profiles, job boards, company team pages
+- **Research**: Automated data collection from regularly updated sources
+- **SEO/Link Building**: Monitor competitor backlinks, directory listings
+- **Content Curation**: Collect links from news sites, blogs, resource pages
+
+**Example Workflow:**
+1. Visit a company's partner directory page
+2. Extract all partner company links (review the results)
+3. Save as "Acme Partners Template" (without auto-run initially to test)
+4. Test the template by clicking it in the popup
+5. Click "Edit Template" → enable auto-run → update
+6. Next time you visit that page:
+   - Open extension popup
+   - Click "Acme Partners Template"
+   - Links copy to clipboard instantly (no results panel)
+7. Paste directly into your CRM!
+
+**Converting Manual to Auto-Run:**
+Already have templates saved? Just run them from the popup, then click "Edit Template" to enable auto-run. No need to recreate them!
+
+**The Power of Auto-Run:**
+With auto-run enabled, clicking a template in the popup instantly extracts and copies links without showing the results panel. This transforms a 30-second manual task (open extension → start selection → drag rectangle → review → copy) into a **2-second workflow** (open popup → click template → done)!
+
 ### Export Format Examples
 
 **URLs Only (comma-separated):**
@@ -131,6 +203,11 @@ Perfect for importing into CRMs, spreadsheets, and outreach tools. The `source_p
 
 - Press **Alt+Shift+S** to quickly start selection mode without opening the popup
 - Press **ESC** at any time to cancel the selection
+- **Save templates** for sites you visit regularly to automate link extraction
+- **Edit templates** by running them from the popup, then click "Edit Template" to modify settings
+- Enable **auto-run** on templates for instant extraction and copy (no results panel)
+- **Auto-run templates** copy directly when clicked - manual templates show results panel
+- Template names must be **unique per domain** to avoid confusion
 - Use **Smart Filtering** to narrow down results by internal/external links or custom keywords
 - Use **Select All** / **Deselect All** buttons to quickly manage your selection
 - The extension remembers your preferred export format and settings
@@ -138,6 +215,7 @@ Perfect for importing into CRMs, spreadsheets, and outreach tools. The `source_p
 - Links are detected based on their visual position on the page
 - Hidden links (display: none) are automatically filtered out
 - Duplicate URLs are automatically removed from results
+- Click the **×** next to any template in the popup to delete it
 
 ---
 

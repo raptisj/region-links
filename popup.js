@@ -1,10 +1,15 @@
 document.addEventListener("DOMContentLoaded", async () => {
-  const result = await chrome.storage.sync.get(["exportMode"]);
+  const result = await chrome.storage.sync.get(["exportMode", "cleanUrls"]);
   if (result.exportMode) {
     const radio = document.querySelector(`input[value="${result.exportMode}"]`);
     if (radio) {
       radio.checked = true;
     }
+  }
+
+  const cleanUrlsCheckbox = document.getElementById("cleanUrlsCheckbox");
+  if (cleanUrlsCheckbox) {
+    cleanUrlsCheckbox.checked = result.cleanUrls || false;
   }
 
   const radioButtons = document.querySelectorAll('input[name="exportMode"]');
@@ -13,6 +18,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       await chrome.storage.sync.set({ exportMode: e.target.value });
     });
   });
+
+  if (cleanUrlsCheckbox) {
+    cleanUrlsCheckbox.addEventListener("change", async (e) => {
+      await chrome.storage.sync.set({ cleanUrls: e.target.checked });
+    });
+  }
 
   const startButton = document.getElementById("startButton");
 
@@ -41,6 +52,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         'input[name="exportMode"]:checked'
       ).value;
 
+      const cleanUrlsCheckbox = document.getElementById("cleanUrlsCheckbox");
+      const cleanUrls = cleanUrlsCheckbox ? cleanUrlsCheckbox.checked : false;
+
       let isLoaded = false;
       try {
         await chrome.tabs.sendMessage(tab.id, { action: "PING" });
@@ -64,6 +78,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       await chrome.tabs.sendMessage(tab.id, {
         action: "START_SELECTION",
         exportMode: selectedMode,
+        cleanUrls: cleanUrls,
       });
 
       showStatus(

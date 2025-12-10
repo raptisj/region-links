@@ -2,12 +2,15 @@ if (typeof window.RLE_STATE === "undefined") {
   window.RLE_STATE = {
     isActive: false,
     exportMode: "urls",
+    cleanUrls: false,
     overlay: null,
     selectionBox: null,
     startX: 0,
     startY: 0,
     extractedLinks: [],
     resultsPanel: null,
+    currentFilter: "all",
+    customFilterValue: "",
   };
 }
 const state = window.RLE_STATE;
@@ -16,7 +19,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "PING") {
     sendResponse({ loaded: true });
   } else if (message.action === "START_SELECTION") {
-    startSelection(message.exportMode);
+    startSelection(message.exportMode, message.cleanUrls);
     sendResponse({ success: true });
   } else if (message.action === "CANCEL_SELECTION") {
     cancelSelection();
@@ -25,12 +28,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
-function startSelection(exportMode) {
+function startSelection(exportMode, cleanUrls) {
   if (state.isActive) {
     return;
   }
 
   state.exportMode = exportMode || "urls";
+  state.cleanUrls = cleanUrls || false;
   state.isActive = true;
 
   createOverlay();
@@ -157,6 +161,129 @@ function handleKeyDown(e) {
   }
 }
 
+function normalizeUrl(rawUrl) {
+  try {
+    const url = new URL(rawUrl);
+    // strip tracking params if enabled
+    if (state.cleanUrls) {
+      const paramsToStrip = [
+        // UTM parameters (Google Analytics, standard marketing)
+        "utm_source",
+        "utm_medium",
+        "utm_campaign",
+        "utm_term",
+        "utm_content",
+        "utm_id",
+        "utm_source_platform",
+        "utm_creative_format",
+        "utm_marketing_tactic",
+
+        // Google Ads & Analytics
+        "gclid",
+        "gclsrc",
+        "dclid",
+        "gbraid",
+        "wbraid",
+        "_ga",
+        "_gl",
+
+        // Facebook/Meta
+        "fbclid",
+        "fb_action_ids",
+        "fb_action_types",
+        "fb_source",
+        "fb_ref",
+
+        // Microsoft/Bing
+        "msclkid",
+        "mscrid",
+
+        // TikTok
+        "ttclid",
+
+        // Twitter/X
+        "twclid",
+
+        // LinkedIn
+        "li_fat_id",
+        "li_source_id",
+
+        // Instagram
+        "igshid",
+        "igsh",
+
+        // HubSpot
+        "_hsenc",
+        "_hsmi",
+        "__hssc",
+        "__hstc",
+        "__hsfp",
+        "hsCtaTracking",
+
+        // Marketo
+        "mkt_tok",
+
+        // Adobe/Omniture
+        "s_cid",
+
+        // Mailchimp
+        "mc_cid",
+        "mc_eid",
+
+        // Campaign Monitor
+        "vero_id",
+        "vero_conv",
+
+        // Drip
+        "__s",
+
+        // Klaviyo
+        "_kx",
+
+        // Omnisend
+        "omnisendContactID",
+
+        // General tracking
+        "ref",
+        "referer",
+        "referrer",
+        "source",
+        "campaign",
+
+        // Email tracking
+        "oly_anon_id",
+        "oly_enc_id",
+        "wickedid",
+
+        // Other ad platforms
+        "zanpid",
+        "spm",
+        "scm",
+        "scm_id",
+
+        // Affiliate tracking
+        "aff_id",
+        "affiliate_id",
+        "click_id",
+        "clickid",
+
+        // Session/tracking IDs
+        "sid",
+        "ssid",
+        "iesrc",
+      ];
+      paramsToStrip.forEach((p) => url.searchParams.delete(p));
+    }
+    // Optional: remove trailing slash from path
+    if (url.pathname !== "/" && url.pathname.endsWith("/")) {
+      url.pathname = url.pathname.slice(0, -1);
+    }
+    return url.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
 function extractLinks(selectionRect) {
   const anchors = document.querySelectorAll("a[href]");
   const extractedLinks = [];
@@ -237,7 +364,7 @@ function extractLinks(selectionRect) {
       }
 
       text = text.trim();
-      const url = anchor.href;
+      const url = normalizeUrl(anchor.href);
 
       extractedLinks.push({
         text: text,
@@ -267,6 +394,108 @@ function extractLinks(selectionRect) {
   } else {
     showNoLinksMessage();
   }
+}
+
+function getFilteredLinks() {
+  const currentPageDomain = new URL(window.location.href).hostname;
+
+  return state.extractedLinks.filter((link) => {
+    try {
+      const linkDomain = new URL(link.url).hostname;
+
+      switch (state.currentFilter) {
+        case "all":
+          return true;
+
+        case "internal":
+          return linkDomain === currentPageDomain;
+
+        case "external":
+          return linkDomain !== currentPageDomain;
+
+        case "custom":
+          if (!state.customFilterValue) return true;
+          const searchValue = state.customFilterValue.toLowerCase();
+          return (
+            link.url.toLowerCase().includes(searchValue) ||
+            link.text.toLowerCase().includes(searchValue)
+          );
+
+        default:
+          return true;
+      }
+    } catch (e) {
+      // If URL parsing fails, include the link in "all" filter
+      return state.currentFilter === "all" || state.currentFilter === "custom";
+    }
+  });
+}
+
+function updateFilterButtons() {
+  const filterBtns = document.querySelectorAll(".rle-filter-btn");
+  filterBtns.forEach((btn) => {
+    btn.classList.remove("active");
+    const btnText = btn.textContent.toLowerCase();
+    if (btnText === state.currentFilter) {
+      btn.classList.add("active");
+    }
+  });
+
+  // If custom filter, don't highlight buttons
+  if (state.currentFilter === "custom") {
+    filterBtns.forEach((btn) => btn.classList.remove("active"));
+  }
+}
+
+function updateFilteredDisplay() {
+  const filteredLinks = getFilteredLinks();
+  const linksList = document.querySelector(".rle-links-list");
+  const countElement = document.querySelector(".rle-panel-count");
+
+  if (!linksList || !countElement) return;
+
+  // Update count
+  if (state.currentFilter === "all") {
+    countElement.textContent = `Found ${filteredLinks.length} link${
+      filteredLinks.length !== 1 ? "s" : ""
+    }`;
+  } else {
+    countElement.textContent = `${filteredLinks.length} link${
+      filteredLinks.length !== 1 ? "s" : ""
+    } (${state.extractedLinks.length} total)`;
+  }
+
+  // Clear and rebuild list
+  linksList.innerHTML = "";
+
+  filteredLinks.forEach((link, index) => {
+    const linkItem = document.createElement("div");
+    linkItem.className = "rle-link-item";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = true;
+    checkbox.id = `rle-link-${index}`;
+    checkbox.dataset.url = link.url;
+
+    const label = document.createElement("label");
+    label.htmlFor = `rle-link-${index}`;
+
+    const textSpan = document.createElement("span");
+    textSpan.className = "rle-link-text";
+    textSpan.textContent = link.text || "(no text)";
+
+    const urlSpan = document.createElement("span");
+    urlSpan.className = "rle-link-url";
+    urlSpan.textContent = link.url;
+
+    label.appendChild(textSpan);
+    label.appendChild(urlSpan);
+
+    linkItem.appendChild(checkbox);
+    linkItem.appendChild(label);
+    linksList.appendChild(linkItem);
+  });
 }
 
 function showResultsPanel(links) {
@@ -310,6 +539,69 @@ function showResultsPanel(links) {
   header.appendChild(closeBtn);
   panel.appendChild(header);
 
+  // Filter section
+  const filterSection = document.createElement("div");
+  filterSection.className = "rle-filter-section";
+
+  const filterLabel = document.createElement("span");
+  filterLabel.className = "rle-filter-label";
+  filterLabel.textContent = "Filter Links";
+
+  const filterControls = document.createElement("div");
+  filterControls.className = "rle-filter-controls";
+
+  // All button
+  const allBtn = document.createElement("button");
+  allBtn.className = "rle-filter-btn" + (state.currentFilter === "all" ? " active" : "");
+  allBtn.textContent = "All";
+  allBtn.onclick = () => {
+    state.currentFilter = "all";
+    updateFilterButtons();
+    updateFilteredDisplay();
+  };
+
+  // Internal button
+  const internalBtn = document.createElement("button");
+  internalBtn.className = "rle-filter-btn" + (state.currentFilter === "internal" ? " active" : "");
+  internalBtn.textContent = "Internal";
+  internalBtn.onclick = () => {
+    state.currentFilter = "internal";
+    updateFilterButtons();
+    updateFilteredDisplay();
+  };
+
+  // External button
+  const externalBtn = document.createElement("button");
+  externalBtn.className = "rle-filter-btn" + (state.currentFilter === "external" ? " active" : "");
+  externalBtn.textContent = "External";
+  externalBtn.onclick = () => {
+    state.currentFilter = "external";
+    updateFilterButtons();
+    updateFilteredDisplay();
+  };
+
+  // Custom filter input
+  const customInput = document.createElement("input");
+  customInput.type = "text";
+  customInput.className = "rle-filter-input";
+  customInput.placeholder = "Filter by domain or keyword...";
+  customInput.value = state.customFilterValue;
+  customInput.oninput = (e) => {
+    state.customFilterValue = e.target.value;
+    state.currentFilter = "custom";
+    updateFilterButtons();
+    updateFilteredDisplay();
+  };
+
+  filterControls.appendChild(allBtn);
+  filterControls.appendChild(internalBtn);
+  filterControls.appendChild(externalBtn);
+  filterControls.appendChild(customInput);
+
+  filterSection.appendChild(filterLabel);
+  filterSection.appendChild(filterControls);
+  panel.appendChild(filterSection);
+
   const linksList = document.createElement("div");
   linksList.className = "rle-links-list";
 
@@ -321,7 +613,7 @@ function showResultsPanel(links) {
     checkbox.type = "checkbox";
     checkbox.checked = true;
     checkbox.id = `rle-link-${index}`;
-    checkbox.dataset.index = index;
+    checkbox.dataset.url = link.url;
 
     const label = document.createElement("label");
     label.htmlFor = `rle-link-${index}`;
@@ -410,8 +702,12 @@ async function copyToClipboard() {
   const selectedLinks = [];
 
   checkboxes.forEach((cb) => {
-    const index = parseInt(cb.dataset.index);
-    selectedLinks.push(state.extractedLinks[index]);
+    const url = cb.dataset.url;
+    // Find the link in extractedLinks by URL
+    const link = state.extractedLinks.find((l) => l.url === url);
+    if (link) {
+      selectedLinks.push(link);
+    }
   });
 
   if (selectedLinks.length === 0) {
@@ -445,21 +741,44 @@ function formatLinks(links, mode) {
       return links.map((link) => link.url).join(", ");
 
     case "text-url":
-      return links.map((link) => `${link.text}\t${link.url}`).join("\n");
+      return links.map((link) => {
+        // Normalize whitespace: replace newlines and multiple spaces with single space
+        const normalizedText = link.text.replace(/\s+/g, ' ').trim();
+        return `${normalizedText} - ${link.url}`;
+      }).join("\n");
 
     case "markdown":
       return links
-        .map((link) => `- [${link.text || link.url}](${link.url})`)
+        .map((link) => {
+          // Normalize whitespace: replace newlines and multiple spaces with single space
+          const normalizedText = link.text ? link.text.replace(/\s+/g, ' ').trim() : link.url;
+          return `- [${normalizedText}](${link.url})`;
+        })
         .join("\n");
 
     case "csv":
-      const escapeCsv = (str) => {
-        // Always quote fields and escape any quotes in the content
-        return `"${str.replace(/"/g, '""')}"`;
-      };
-      const rows = ['"Text","URL"'];
+      const sourcePage = window.location.href;
+      const rows = ["name,url,source_page"];
       links.forEach((link) => {
-        rows.push(`${escapeCsv(link.text)},${escapeCsv(link.url)}`);
+        // Normalize whitespace: replace newlines and multiple spaces with single space
+        const normalizedText = link.text.replace(/\s+/g, ' ').trim();
+        // Escape commas and quotes in values
+        const escapedText = normalizedText.replace(/"/g, '""');
+        const escapedUrl = link.url.replace(/"/g, '""');
+        const escapedSource = sourcePage.replace(/"/g, '""');
+
+        // Only quote fields that contain commas, quotes, or newlines
+        const nameField = (normalizedText.includes(',') || normalizedText.includes('"'))
+          ? `"${escapedText}"`
+          : normalizedText;
+        const urlField = (link.url.includes(',') || link.url.includes('"'))
+          ? `"${escapedUrl}"`
+          : link.url;
+        const sourceField = (sourcePage.includes(',') || sourcePage.includes('"'))
+          ? `"${escapedSource}"`
+          : sourcePage;
+
+        rows.push(`${nameField},${urlField},${sourceField}`);
       });
       return rows.join("\n");
 
@@ -516,6 +835,8 @@ function closeResultsPanel() {
     state.resultsPanel = null;
   }
   state.extractedLinks = [];
+  state.currentFilter = "all";
+  state.customFilterValue = "";
   state.isActive = false;
 }
 

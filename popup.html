@@ -125,6 +125,30 @@
       color: #888;
       text-align: center;
     }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      padding: 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .setting-row:hover {
+      background: #f0f0f0;
+    }
+
+    .setting-row input[type="checkbox"] {
+      margin-right: 8px;
+      cursor: pointer;
+    }
+
+    .setting-row span {
+      font-size: 13px;
+      color: #333;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -151,6 +175,14 @@
           <label for="mode-csv">CSV</label>
         </div>
       </div>
+    </div>
+
+    <div class="section">
+      <span class="section-label">Settings:</span>
+      <label class="setting-row">
+        <input type="checkbox" id="cleanUrlsCheckbox" />
+        <span>Clean URLs (strip tracking parameters)</span>
+      </label>
     </div>
 
     <button id="startButton" class="start-button">Start Region Selection</button>

@@ -209,7 +209,7 @@ Perfect for importing into CRMs, spreadsheets, and outreach tools. The `source_p
 - **Auto-run templates** copy directly when clicked - manual templates show results panel
 - Template names must be **unique per domain** to avoid confusion
 - Use **Smart Filtering** to narrow down results by internal/external links or custom keywords
-- Use **Select All** / **Deselect All** buttons to quickly manage your selection
+- Use the **Select All / Deselect All** toggle button to quickly manage your selection
 - The extension remembers your preferred export format and settings
 - Enable **"Clean URLs"** to automatically strip 70+ tracking parameters from Google, Facebook, email marketing platforms, and more
 - Links are detected based on their visual position on the page

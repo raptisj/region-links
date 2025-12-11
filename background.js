@@ -53,9 +53,28 @@ chrome.commands.onCommand.addListener(async (command) => {
 
       // Load content script if needed
       if (!isLoaded) {
+        // Load all modules in dependency order
         await chrome.scripting.executeScript({
           target: { tabId: tab.id },
-          files: ["content.js"],
+          files: [
+            // Core utilities (no dependencies)
+            "modules/state.js",
+            "modules/urlUtils.js",
+            "modules/ui/toast.js",
+            // Data processing (depends on core)
+            "modules/links/formatter.js",
+            "modules/links/filter.js",
+            // UI components (depends on utilities)
+            "modules/ui/dialogs.js",
+            "modules/templates.js",
+            "modules/links/extractor.js",
+            "modules/ui/resultsPanel.js",
+            "modules/ui/overlay.js",
+            // Orchestration (depends on everything)
+            "modules/messageHandler.js",
+            // Entry point (initializes everything)
+            "content.js"
+          ],
         });
 
         await chrome.scripting.insertCSS({

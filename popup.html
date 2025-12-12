@@ -1,263 +1,282 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RegionLinks</title>
-  <style>
-    body {
-      width: 320px;
-      padding: 16px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      margin: 0;
-      background: #f5f5f5;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RegionLinks</title>
+    <style>
+      body {
+        width: 340px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Arial, sans-serif;
+        margin: 0;
+        background: #f5f5f5;
+        border: none;
+      }
 
-    .container {
-      background: white;
-      border-radius: 8px;
-      padding: 16px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
+      .container {
+        background: white;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
 
-    h1 {
-      margin: 0 0 16px 0;
-      font-size: 18px;
-      font-weight: 600;
-      color: #333;
-    }
+      h1 {
+        margin: 0 0 16px 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+      }
 
-    .section {
-      margin-bottom: 16px;
-    }
+      .section {
+        margin-bottom: 16px;
+      }
 
-    .section-label {
-      display: block;
-      font-size: 13px;
-      font-weight: 500;
-      color: #555;
-      margin-bottom: 8px;
-    }
+      .section-label {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        color: #555;
+        margin-bottom: 8px;
+      }
 
-    .radio-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+      .radio-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
 
-    .radio-option {
-      display: flex;
-      align-items: center;
-      padding: 8px;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
+      .radio-option {
+        display: flex;
+        align-items: center;
+        padding: 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
 
-    .radio-option:hover {
-      background: #f0f0f0;
-    }
+      .radio-option:hover {
+        background: #f0f0f0;
+      }
 
-    .radio-option input[type="radio"] {
-      margin-right: 8px;
-      cursor: pointer;
-    }
+      .radio-option input[type="radio"] {
+        margin-right: 8px;
+        cursor: pointer;
+      }
 
-    .radio-option label {
-      font-size: 13px;
-      color: #333;
-      cursor: pointer;
-      flex: 1;
-    }
+      .radio-option label {
+        font-size: 13px;
+        color: #333;
+        cursor: pointer;
+        flex: 1;
+      }
 
-    .start-button {
-      width: 100%;
-      padding: 12px;
-      background: #4CAF50;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
+      .start-button {
+        width: 100%;
+        padding: 12px;
+        background: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
 
-    .start-button:hover {
-      background: #45a049;
-    }
+      .start-button:hover {
+        background: #45a049;
+      }
 
-    .start-button:active {
-      background: #3d8b40;
-    }
+      .start-button:active {
+        background: #3d8b40;
+      }
 
-    .start-button:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
+      .start-button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
 
-    .status-message {
-      width: 100%;
-      padding: 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 500;
-      text-align: center;
-      display: none;
-      box-sizing: border-box;
-    }
+      .status-message {
+        width: 100%;
+        padding: 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        text-align: center;
+        display: none;
+        box-sizing: border-box;
+      }
 
-    .status-message.success {
-      background: #e8f5e9;
-      color: #2e7d32;
-      display: block;
-    }
+      .status-message.success {
+        background: #e8f5e9;
+        color: #2e7d32;
+        display: block;
+      }
 
-    .status-message.error {
-      background: #ffebee;
-      color: #c62828;
-      display: block;
-    }
+      .status-message.error {
+        background: #ffebee;
+        color: #c62828;
+        display: block;
+      }
 
-    .status-message.info {
-      background: #e3f2fd;
-      color: #1565c0;
-      display: block;
-    }
+      .status-message.info {
+        background: #e3f2fd;
+        color: #1565c0;
+        display: block;
+      }
 
-    .footer {
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 1px solid #e0e0e0;
-      font-size: 11px;
-      color: #888;
-      text-align: center;
-    }
+      .footer {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #e0e0e0;
+        font-size: 11px;
+        color: #888;
+        text-align: center;
+      }
 
-    .setting-row {
-      display: flex;
-      align-items: center;
-      padding: 8px;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
+      .setting-row {
+        display: flex;
+        align-items: center;
+        padding: 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
 
-    .setting-row:hover {
-      background: #f0f0f0;
-    }
+      .setting-row:hover {
+        background: #f0f0f0;
+      }
 
-    .setting-row input[type="checkbox"] {
-      margin-right: 8px;
-      cursor: pointer;
-    }
+      .setting-row input[type="checkbox"] {
+        margin-right: 8px;
+        cursor: pointer;
+      }
 
-    .setting-row span {
-      font-size: 13px;
-      color: #333;
-      cursor: pointer;
-    }
+      .setting-row span {
+        font-size: 13px;
+        color: #333;
+        cursor: pointer;
+      }
 
-    .templates-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
+      .templates-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
 
-    .template-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 10px;
-      background: #f8f9fa;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
+      .template-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 10px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
 
-    .template-item:hover {
-      background: #e9ecef;
-    }
+      .template-item:hover {
+        background: #e9ecef;
+      }
 
-    .template-name {
-      font-size: 13px;
-      color: #333;
-      font-weight: 500;
-      flex: 1;
-    }
+      .template-name {
+        font-size: 13px;
+        color: #333;
+        font-weight: 500;
+        flex: 1;
+      }
 
-    .template-auto {
-      font-size: 11px;
-      color: #4CAF50;
-      background: rgba(76, 175, 80, 0.1);
-      padding: 2px 6px;
-      border-radius: 3px;
-      margin-right: 6px;
-    }
+      .template-auto {
+        font-size: 11px;
+        color: #4caf50;
+        background: rgba(76, 175, 80, 0.1);
+        padding: 2px 6px;
+        border-radius: 3px;
+        margin-right: 6px;
+      }
 
-    .template-delete {
-      background: none;
-      border: none;
-      color: #999;
-      cursor: pointer;
-      font-size: 16px;
-      padding: 0 4px;
-      transition: color 0.2s;
-    }
+      .template-delete {
+        background: none;
+        border: none;
+        color: #999;
+        cursor: pointer;
+        font-size: 16px;
+        padding: 0 4px;
+        transition: color 0.2s;
+      }
 
-    .template-delete:hover {
-      color: #f44336;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>RegionLinks</h1>
+      .template-delete:hover {
+        color: #f44336;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>RegionLinks</h1>
 
-    <div class="section">
-      <span class="section-label">Export Format:</span>
-      <div class="radio-group">
-        <div class="radio-option">
-          <input type="radio" id="mode-urls" name="exportMode" value="urls" checked>
-          <label for="mode-urls">URLs only</label>
+      <div class="section">
+        <span class="section-label">Export Format:</span>
+        <div class="radio-group">
+          <div class="radio-option">
+            <input
+              type="radio"
+              id="mode-urls"
+              name="exportMode"
+              value="urls"
+              checked
+            />
+            <label for="mode-urls">URLs only</label>
+          </div>
+          <div class="radio-option">
+            <input
+              type="radio"
+              id="mode-text-url"
+              name="exportMode"
+              value="text-url"
+            />
+            <label for="mode-text-url">Text + URL</label>
+          </div>
+          <div class="radio-option">
+            <input
+              type="radio"
+              id="mode-markdown"
+              name="exportMode"
+              value="markdown"
+            />
+            <label for="mode-markdown">Markdown list</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" id="mode-csv" name="exportMode" value="csv" />
+            <label for="mode-csv">CSV</label>
+          </div>
         </div>
-        <div class="radio-option">
-          <input type="radio" id="mode-text-url" name="exportMode" value="text-url">
-          <label for="mode-text-url">Text + URL</label>
-        </div>
-        <div class="radio-option">
-          <input type="radio" id="mode-markdown" name="exportMode" value="markdown">
-          <label for="mode-markdown">Markdown list</label>
-        </div>
-        <div class="radio-option">
-          <input type="radio" id="mode-csv" name="exportMode" value="csv">
-          <label for="mode-csv">CSV</label>
-        </div>
+      </div>
+
+      <div class="section">
+        <span class="section-label">Settings:</span>
+        <label class="setting-row">
+          <input type="checkbox" id="cleanUrlsCheckbox" />
+          <span>Clean URLs (strip tracking parameters)</span>
+        </label>
+      </div>
+
+      <div id="templatesSection" class="section" style="display: none">
+        <span class="section-label">Saved Templates:</span>
+        <div id="templatesList" class="templates-list"></div>
+      </div>
+
+      <button id="startButton" class="start-button">
+        Start Region Selection
+      </button>
+
+      <div id="statusMessage" class="status-message"></div>
+
+      <div class="footer">
+        Click the button to start selecting a region on the current page
       </div>
     </div>
 
-    <div class="section">
-      <span class="section-label">Settings:</span>
-      <label class="setting-row">
-        <input type="checkbox" id="cleanUrlsCheckbox" />
-        <span>Clean URLs (strip tracking parameters)</span>
-      </label>
-    </div>
-
-    <div id="templatesSection" class="section" style="display: none;">
-      <span class="section-label">Saved Templates:</span>
-      <div id="templatesList" class="templates-list"></div>
-    </div>
-
-    <button id="startButton" class="start-button">Start Region Selection</button>
-
-    <div id="statusMessage" class="status-message"></div>
-
-    <div class="footer">
-      Click the button to start selecting a region on the current page
-    </div>
-  </div>
-
-  <script src="popup.js"></script>
-</body>
+    <script src="popup.js"></script>
+  </body>
 </html>

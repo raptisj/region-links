@@ -64,12 +64,17 @@ chrome.commands.onCommand.addListener(async (command) => {
             // Data processing (depends on core)
             "modules/links/formatter.js",
             "modules/links/filter.js",
+            "modules/links/containerDetector.js",
             // UI components (depends on utilities)
             "modules/ui/dialogs.js",
             "modules/templates.js",
             "modules/links/extractor.js",
             "modules/ui/resultsPanel.js",
             "modules/ui/overlay.js",
+            "modules/ui/elementPicker.js",
+            "modules/ui/multiPageProgress.js",
+            // Multi-page logic (depends on templates and UI)
+            "modules/multiPage/navigationHandler.js",
             // Orchestration (depends on everything)
             "modules/messageHandler.js",
             // Entry point (initializes everything)

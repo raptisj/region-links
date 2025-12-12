@@ -29,16 +29,21 @@ region-links/
     ├── state.js            - State management
     ├── urlUtils.js         - URL normalization
     ├── messageHandler.js   - Message routing
-    ├── templates.js        - Template CRUD operations
+    ├── templates.js        - Template CRUD and multi-page orchestration
     ├── ui/
-    │   ├── overlay.js      - Selection overlay
-    │   ├── resultsPanel.js - Results display
-    │   ├── dialogs.js      - Modal dialogs
-    │   └── toast.js        - Toast notifications
-    └── links/
-        ├── extractor.js    - Link extraction logic
-        ├── filter.js       - Link filtering
-        └── formatter.js    - Export format generation
+    │   ├── overlay.js            - Selection overlay
+    │   ├── resultsPanel.js       - Results display
+    │   ├── dialogs.js            - Modal dialogs (with multi-page settings)
+    │   ├── toast.js              - Toast notifications
+    │   ├── elementPicker.js      - Pagination button picker (NEW)
+    │   └── multiPageProgress.js  - Progress overlay for multi-page (NEW)
+    ├── links/
+    │   ├── extractor.js          - Link extraction logic
+    │   ├── filter.js             - Link filtering
+    │   ├── formatter.js          - Export format generation
+    │   └── containerDetector.js  - Container detection (NEW)
+    └── multiPage/
+        └── navigationHandler.js  - Navigation continuation (NEW)
 ```
 
 ## Module System
@@ -207,6 +212,113 @@ Chrome extensions loaded via `chrome.scripting.executeScript` don't support ES6 
   - `mouseup` - Complete selection and extract
   - `keydown (ESC)` - Cancel selection
 
+### Multi-Page Extraction Modules (NEW)
+
+#### `modules/links/containerDetector.js` - Container Detector
+- **Purpose**: Detect common ancestor container for links
+- **Dependencies**: None (pure functions)
+- **Exports**: `RLE.links.detectContainer(linkElements)`
+- **Algorithm**:
+  1. Find common ancestor of all link elements
+  2. Walk up DOM tree to find meaningful container (semantic tags or divs with meaningful classes)
+  3. Generate robust CSS selector for container
+  4. Prioritizes: main, article, section, nav, ul, ol, table, or divs with classes like "list", "grid", "items"
+- **Use Case**: Enable "full list" extraction that works on entire container instead of viewport
+
+#### `modules/ui/elementPicker.js` - Element Picker
+- **Purpose**: Visual element picker for pagination buttons
+- **Dependencies**: None (standalone)
+- **Exports**:
+  - `RLE.ui.elementPicker.start(callback)` - Start picker mode
+  - `RLE.ui.elementPicker.stop()` - Stop picker mode
+- **Features**:
+  - Hover highlighting with blue outline
+  - Element info tooltip showing tag, classes, text
+  - Click to select element
+  - ESC to cancel
+  - Robust CSS selector generation (ID → class → aria-label → path)
+- **Usage**: Called from template save dialog to mark pagination buttons
+
+#### `modules/ui/multiPageProgress.js` - Multi-Page Progress
+- **Purpose**: Show progress overlay during multi-page extraction
+- **Dependencies**: `state`, `ui.showToast`
+- **Exports**:
+  - `RLE.ui.showMultiPageProgress(page, maxPages, linkCount)` - Show overlay
+  - `RLE.ui.updateMultiPageProgress(page, maxPages, linkCount)` - Update progress
+  - `RLE.ui.hideMultiPageProgress()` - Hide overlay
+- **Features**:
+  - Shows current page number and max pages
+  - Displays total links collected so far
+  - Animated progress bar
+  - Cancel button (clears session state)
+
+#### `modules/multiPage/navigationHandler.js` - Navigation Handler
+- **Purpose**: Handle state persistence across page navigations
+- **Dependencies**: `templates`, `ui.showToast`, `ui.hideMultiPageProgress`
+- **Exports**:
+  - `RLE.multiPage.setupNavigationContinuation()` - Prepare for navigation
+  - `RLE.multiPage.resetNavigation()` - Reset state
+- **Features**:
+  - Auto-initializes on page load
+  - Checks for pending multi-page state in `chrome.storage.local` (key: `rle_multiPageState`)
+  - Resumes extraction on new page after navigation
+  - Waits for content to stabilize (loading indicators, document.readyState)
+- **Storage**: Uses `chrome.storage.local` to persist state across navigations (chrome.storage.session not available in content scripts)
+
+#### Extended: `modules/templates.js` - Template Management
+- **Updated Purpose**: CRUD operations + multi-page orchestration
+- **New Dependencies**: Added `links.extractFromContainer`, `ui.showMultiPageProgress`, `ui.hideMultiPageProgress`, `multiPage.setupNavigationContinuation`
+- **New Exports**:
+  - `RLE.templates.runMultiPageTemplate(template, isAutoRunning)` - Multi-page orchestrator
+  - `RLE.templates.extractCurrentPage(template, multiPageState)` - Extract single page
+  - `RLE.templates.normalizeTemplate(template)` - Backward compatibility helper
+- **Enhanced Template Structure**:
+  ```javascript
+  {
+    // ... existing fields ...
+    multiPage: false,                          // Enable multi-page extraction
+    maxPages: 5,                               // Max pages to extract
+    paginationSelector: null,                  // CSS selector for next button
+    useContainerInsteadOfViewport: false,      // Full container extraction
+    containerSelector: null,                   // CSS selector for container
+    autoScroll: false,                         // Infinite scroll (future)
+    maxScrollSteps: 10                         // Scroll limit (future)
+  }
+  ```
+- **Multi-Page Flow**:
+  1. Initialize state in `chrome.storage.session`
+  2. Show progress overlay
+  3. Extract from current page (container or region-based)
+  4. Find and click "Next" button (saved selector or auto-detect)
+  5. Wait for navigation to complete
+  6. Resume extraction on new page
+  7. Repeat until max pages or no next button
+  8. Deduplicate and finalize results
+
+#### Extended: `modules/links/extractor.js` - Link Extractor
+- **New Exports**:
+  - `RLE.links.extractFromContainer(containerSelector, template)` - Extract from container
+  - `RLE.links.extractLinkElements(selectionRect)` - Extract DOM elements (for container detection)
+- **Container Extraction**:
+  - Queries all links within container element
+  - Skips hidden links (offsetParent === null)
+  - Uses same text extraction logic as region-based
+  - Returns array of link objects
+
+#### Extended: `modules/ui/dialogs.js` - Dialogs
+- **New Features in Save Template Dialog**:
+  - "Use full list" checkbox
+  - "Enable multi-page extraction" checkbox
+  - Max pages dropdown (2-20, default 5)
+  - Pagination selector input
+  - "Mark Button" to launch element picker
+  - Container detection on save (when "use full list" enabled)
+- **Container Detection**:
+  - Extracts link DOM elements from last selection
+  - Calls `RLE.links.detectContainer()`
+  - Stores `containerSelector` in template
+  - Shows warning if detection fails
+
 ### Orchestration Modules
 
 #### `modules/messageHandler.js` - Message Handler
@@ -239,6 +351,7 @@ const moduleFiles = [
   // Data processing (depends on core)
   "modules/links/formatter.js",
   "modules/links/filter.js",
+  "modules/links/containerDetector.js",        // NEW
 
   // UI components (depends on utilities)
   "modules/ui/dialogs.js",
@@ -246,6 +359,11 @@ const moduleFiles = [
   "modules/links/extractor.js",
   "modules/ui/resultsPanel.js",
   "modules/ui/overlay.js",
+  "modules/ui/elementPicker.js",               // NEW
+  "modules/ui/multiPageProgress.js",           // NEW
+
+  // Multi-page logic (depends on templates and UI)
+  "modules/multiPage/navigationHandler.js",    // NEW
 
   // Orchestration (depends on everything)
   "modules/messageHandler.js",
@@ -294,6 +412,45 @@ await chrome.scripting.executeScript({
 3. Results panel is shown for user review
 4. User can filter, select, and copy manually
 
+### Multi-Page Extraction Flow (NEW)
+
+1. User saves template with multi-page enabled (checkbox + max pages)
+2. Optionally marks pagination button using element picker
+3. Template stores: `multiPage: true`, `maxPages`, `paginationSelector`, `useContainerInsteadOfViewport`, `containerSelector`
+4. On template run, `runTemplate()` detects `multiPage: true`
+5. Calls `runMultiPageTemplate()` instead of `extractLinks()`
+6. **Page 1**:
+   - Initialize `multiPageState` in `chrome.storage.local` (key: `rle_multiPageState`)
+   - Show progress overlay (page 1 of N)
+   - Extract links (container or region-based)
+   - Add to `allResults` array
+   - Find pagination button (saved selector or auto-detect)
+7. **Navigation**:
+   - Click "Next" button
+   - Store updated `multiPageState` in local storage
+   - Wait for page load
+8. **Page 2-N**:
+   - `navigationHandler` detects pending `rle_multiPageState` on load
+   - Waits for content to stabilize
+   - Loads template from storage
+   - Calls `extractCurrentPage()` with accumulated `multiPageState`
+   - Updates progress overlay
+   - Repeats steps 7-8 until max pages or no next button
+9. **Finalization**:
+   - Deduplicate links by URL (across all pages)
+   - Apply filters
+   - Format results
+   - Clear `rle_multiPageState` from local storage
+   - Hide progress overlay
+   - Show results panel or copy (depending on auto-run)
+
+**Cancel Flow**:
+- User clicks Cancel button in progress overlay
+- Clears `rle_multiPageState` from local storage
+- Hides overlay
+- Shows toast "Multi-page extraction cancelled"
+- Does not navigate further
+
 ## Storage
 
 ### Chrome Sync Storage (`chrome.storage.sync`)
@@ -301,8 +458,20 @@ await chrome.scripting.executeScript({
 - `cleanUrls` - User's URL cleaning preference
 
 ### Chrome Local Storage (`chrome.storage.local`)
-- `templates` - Array of saved templates
+- `templates` - Array of saved templates (with multi-page settings)
 - `pendingAutoCopy` - Temporary storage for auto-run results
+
+### Multi-Page State Storage (NEW)
+- `rle_multiPageState` - Temporary state for multi-page extraction (stored in `chrome.storage.local`)
+  - `templateId` - ID of template being run
+  - `currentPage` - Current page number
+  - `maxPages` - Maximum pages to extract
+  - `allResults` - Accumulated links from all pages
+  - `isRunning` - Whether extraction is active
+  - `isAutoRunning` - Whether this is auto-run mode
+- **Storage Location**: `chrome.storage.local` (not `chrome.storage.session` - that's not accessible from content scripts)
+- **Lifetime**: Persists across page navigations, manually cleared on completion or cancel
+- **Purpose**: Enable state continuity during multi-page navigation
 
 ## Extension Components
 
@@ -369,6 +538,7 @@ await chrome.scripting.executeScript({
 
 ### Testing Checklist
 
+**Basic Features:**
 - [ ] Region selection works
 - [ ] All export formats work (urls, text-url, markdown, csv)
 - [ ] All filter types work (all, internal, external, custom)
@@ -381,6 +551,30 @@ await chrome.scripting.executeScript({
 - [ ] Keyboard shortcut (Alt+Shift+S) works
 - [ ] Extension works on various websites
 - [ ] No errors in console
+
+**Multi-Page Features (NEW):**
+- [ ] "Use full list" checkbox detects container correctly
+- [ ] Container extraction works (extracts all links in container)
+- [ ] Element picker launches and highlights elements on hover
+- [ ] Element picker captures pagination button selector on click
+- [ ] ESC cancels element picker
+- [ ] Multi-page checkbox toggles settings visibility
+- [ ] Max pages dropdown saves correctly
+- [ ] Templates save with multi-page settings
+- [ ] Multi-page extraction shows progress overlay
+- [ ] Progress overlay updates (page count, link count, progress bar)
+- [ ] Auto-detect finds "Next" button on common pagination styles
+- [ ] Manual pagination selector works (saved selector is used)
+- [ ] Extraction continues across page navigation (2-3 pages)
+- [ ] Links are deduplicated across all pages
+- [ ] Cancel button stops multi-page extraction
+- [ ] Session state clears after completion
+- [ ] Session state clears after cancel
+- [ ] Multi-page works with auto-run templates
+- [ ] Multi-page works with manual templates
+- [ ] Container + multi-page combination works
+- [ ] Error handling when pagination button not found
+- [ ] Error handling when container not found (fallback to region)
 
 ## Browser Compatibility
 
@@ -413,10 +607,21 @@ await chrome.scripting.executeScript({
 - Links must be visible (non-zero dimensions) to be detected
 - Very large pages (1000+ links) may take a moment to process
 - Template coordinates are viewport-relative, may need adjustment if page layout changes
-- Auto-run templates don't show progress, may seem unresponsive on slow pages
+- Auto-run templates don't show progress for single-page extraction, may seem unresponsive on slow pages
+
+### Multi-Page Specific Limitations:
+
+- **Rate Limiting**: Some sites may detect and block rapid page navigation
+- **Dynamic Pagination**: Sites with JavaScript-heavy pagination may not work reliably
+- **Container Detection**: May not find optimal container for complex DOM structures
+- **Navigation Timing**: Fixed wait times (500ms) may not be enough for very slow pages
+- **Session State**: Multi-page state lost if user closes/refreshes tab during extraction
+- **URL Changes**: Pagination that changes URL parameters works better than hash-based navigation
+- **Maximum Pages**: Hard limit of 20 pages to prevent infinite loops and excessive resource use
 
 ## Future Enhancements
 
+- **Auto-scroll for infinite scroll pages** (currently planned, not yet implemented)
 - Export to file (JSON, CSV download)
 - Import/export templates
 - Template sharing
@@ -426,6 +631,9 @@ await chrome.scripting.executeScript({
 - Regex-based filtering
 - Custom export format templates
 - Link metadata extraction (title, description)
+- Configurable wait times for multi-page navigation
+- Smart pagination detection improvements
+- URL tracking to detect circular pagination
 
 ## Contributing
 

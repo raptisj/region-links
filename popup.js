@@ -79,12 +79,17 @@ document.addEventListener("DOMContentLoaded", async () => {
             // Data processing (depends on core)
             "modules/links/formatter.js",
             "modules/links/filter.js",
+            "modules/links/containerDetector.js",
             // UI components (depends on utilities)
             "modules/ui/dialogs.js",
             "modules/templates.js",
             "modules/links/extractor.js",
             "modules/ui/resultsPanel.js",
             "modules/ui/overlay.js",
+            "modules/ui/elementPicker.js",
+            "modules/ui/multiPageProgress.js",
+            // Multi-page logic (depends on templates and UI)
+            "modules/multiPage/navigationHandler.js",
             // Orchestration (depends on everything)
             "modules/messageHandler.js",
             // Entry point (initializes everything)
@@ -200,10 +205,17 @@ async function loadTemplates() {
 }
 
 async function deleteTemplate(templateId) {
-  const result = await chrome.storage.local.get(["templates"]);
+  const result = await chrome.storage.local.get(["templates", "rle_multiPageState"]);
   const templates = result.templates || [];
   const filtered = templates.filter((t) => t.id !== templateId);
   await chrome.storage.local.set({ templates: filtered });
+
+  // Clean up multi-page state if it belongs to this template
+  const multiPageState = result.rle_multiPageState;
+  if (multiPageState && multiPageState.templateId === templateId) {
+    console.log("[RegionLinks Popup] Cleaning up multi-page state for deleted template");
+    await chrome.storage.local.remove("rle_multiPageState");
+  }
 }
 
 async function runTemplateFromPopup(tabId, template) {
@@ -230,12 +242,17 @@ async function runTemplateFromPopup(tabId, template) {
           // Data processing (depends on core)
           "modules/links/formatter.js",
           "modules/links/filter.js",
+          "modules/links/containerDetector.js",
           // UI components (depends on utilities)
           "modules/ui/dialogs.js",
           "modules/templates.js",
           "modules/links/extractor.js",
           "modules/ui/resultsPanel.js",
           "modules/ui/overlay.js",
+          "modules/ui/elementPicker.js",
+          "modules/ui/multiPageProgress.js",
+          // Multi-page logic
+          "modules/multiPage/navigationHandler.js",
           // Orchestration (depends on everything)
           "modules/messageHandler.js",
           // Entry point (initializes everything)

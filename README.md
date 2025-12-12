@@ -2,7 +2,9 @@
 
 A Chrome extension that allows you to select a rectangular region on any web page and extract all links within that region. Perfect for sales prospecting, research, and content curation. Export links in multiple formats optimized for CRMs, emails, and documentation.
 
-**NEW: Saved Extraction Templates** - Save your extraction settings per website. Auto-run templates extract and copy with one click (no results panel). Manual templates show results for review. Transform 30-second workflows into 2 seconds!
+**NEW: Multi-Page Extraction** - Automatically extract links across multiple pages! Navigate through paginated content (search results, product listings, directories) and collect links from 2-20 pages with one click. Perfect for large-scale data collection.
+
+**Saved Extraction Templates** - Save your extraction settings per website. Auto-run templates extract and copy with one click (no results panel). Manual templates show results for review. Transform 30-second workflows into 2 seconds!
 
 ## Examples
 
@@ -30,6 +32,11 @@ https://github.com/user-attachments/assets/50a4a85a-b768-4e4d-853c-e83324067240
 - **URL Normalization**: Optional feature to strip tracking parameters (utm\_\*, gclid, fbclid, etc.) for cleaner URLs
 - **Smart Filtering**: Filter extracted links by internal/external domains or custom keywords
 - **Saved Extraction Templates**: Save your extraction settings and auto-run them on future visits (Premium feature)
+- **Multi-Page Extraction (NEW!)**: Automatically navigate through paginated content and extract links from multiple pages
+  - Extract from entire container instead of just visible area
+  - Auto-detect or manually mark "Next" buttons
+  - Set max pages (2-20) with real-time progress tracking
+  - Cancel anytime during extraction
 - **Interactive Results Panel**: Review, filter, and deselect links before copying
 - **Keyboard Shortcuts**: Press Alt+Shift+S to instantly start selection, ESC to cancel
 - **Settings Persistence**: Your preferred export format and settings are remembered
@@ -164,6 +171,87 @@ Already have templates saved? Just run them from the popup, then click "Edit Tem
 **The Power of Auto-Run:**
 With auto-run enabled, clicking a template in the popup instantly extracts and copies links without showing the results panel. This transforms a 30-second manual task (open extension → start selection → drag rectangle → review → copy) into a **2-second workflow** (open popup → click template → done)!
 
+### Multi-Page Extraction (NEW!)
+
+Extract links across multiple pages automatically! Perfect for paginated content like search results, product listings, or article archives.
+
+#### Features:
+
+- **Full-List Extraction**: Extract from entire container instead of just visible area
+  - Automatically detects the list/table container
+  - Extracts all links in the container, not just what fits in your rectangle
+  - Perfect for long scrollable lists or tables
+
+- **Multi-Page Navigation**: Automatically navigate through paginated content
+  - Set max pages to extract (2-20 pages)
+  - Automatically clicks "Next" button and continues extraction
+  - Shows real-time progress: "Extracting page 3 of 5... Collected 142 links so far"
+  - Cancel anytime during extraction
+
+- **Smart Pagination Detection**: Finds "Next" buttons automatically
+  - Auto-detects common pagination patterns (Next button, arrows, pagination links)
+  - Or manually mark the pagination button using visual picker
+  - Supports "Next", "Show More", and various pagination styles
+
+#### How to Use:
+
+1. **Extract links once** using region selection (as usual)
+2. **Click "Save as Template"** in the results panel
+3. **Enable "Use full list"** to extract entire container (optional but recommended)
+   - Extension auto-detects the list/table container
+   - Extracts all links in that container on each page
+4. **Enable "Enable multi-page extraction"**
+5. **Set max pages** (default: 5, max: 20)
+6. **Mark Next Page Button** (optional):
+   - Click "Mark Button" to enter element picker mode
+   - Hover over the "Next" button (it will highlight)
+   - Click to select it
+   - Or leave empty to use auto-detection
+7. **Save the template**
+
+#### Running Multi-Page Templates:
+
+- Click the template from the popup (like regular templates)
+- **Progress overlay appears** showing:
+  - Current page number (e.g., "Extracting page 2 of 5")
+  - Total links collected so far
+  - Progress bar
+  - Cancel button
+- Extension automatically:
+  - Extracts links from current page
+  - Clicks "Next" button
+  - Waits for new page to load
+  - Continues until max pages reached or no more "Next" button
+- **Results are deduplicated** across all pages
+- Final results shown in results panel (or copied if auto-run)
+
+#### Perfect For:
+
+- **Search Results**: Google, LinkedIn, job boards (multi-page search results)
+- **E-commerce**: Product listings across multiple pages
+- **Directories**: Company directories, member lists with pagination
+- **Forums**: Thread lists, post archives
+- **News Sites**: Article listings, blog archives
+
+#### Example Workflow:
+
+1. Visit LinkedIn search results page
+2. Select the results area with rectangle
+3. Save as template with:
+   - ✓ Use full list (extracts all results in container)
+   - ✓ Enable multi-page extraction
+   - Max pages: 10
+   - Mark the "Next" button
+4. Future visits: Click template → Extension extracts all 10 pages automatically → Shows combined results!
+
+#### Tips:
+
+- **Start small**: Test with 2-3 pages first before increasing to max pages
+- **Use full list**: Highly recommended for multi-page extraction to avoid position issues
+- **Mark pagination button**: More reliable than auto-detection for complex sites
+- **Watch for rate limiting**: Some sites may block rapid page navigation
+- **Cancel anytime**: Click the Cancel button in progress overlay if needed
+
 ### Export Format Examples
 
 **URLs Only (comma-separated):**
@@ -202,11 +290,16 @@ Perfect for importing into CRMs, spreadsheets, and outreach tools. The `source_p
 ### Tips
 
 - Press **Alt+Shift+S** to quickly start selection mode without opening the popup
-- Press **ESC** at any time to cancel the selection
+- Press **ESC** at any time to cancel the selection or element picker
 - **Save templates** for sites you visit regularly to automate link extraction
 - **Edit templates** by running them from the popup, then click "Edit Template" to modify settings
 - Enable **auto-run** on templates for instant extraction and copy (no results panel)
 - **Auto-run templates** copy directly when clicked - manual templates show results panel
+- **Multi-page extraction**: Enable for paginated content (search results, directories, product listings)
+  - Start with 2-3 pages to test, then increase max pages
+  - Use "Use full list" option for consistent results across pages
+  - Mark pagination button manually for complex sites
+  - Cancel anytime using the Cancel button in progress overlay
 - Template names must be **unique per domain** to avoid confusion
 - Use **Smart Filtering** to narrow down results by internal/external links or custom keywords
 - Use the **Select All / Deselect All** toggle button to quickly manage your selection
@@ -214,7 +307,7 @@ Perfect for importing into CRMs, spreadsheets, and outreach tools. The `source_p
 - Enable **"Clean URLs"** to automatically strip 70+ tracking parameters from Google, Facebook, email marketing platforms, and more
 - Links are detected based on their visual position on the page
 - Hidden links (display: none) are automatically filtered out
-- Duplicate URLs are automatically removed from results
+- Duplicate URLs are automatically removed from results (including across pages in multi-page extraction)
 - Click the **×** next to any template in the popup to delete it
 
 ---

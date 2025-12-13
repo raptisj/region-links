@@ -141,34 +141,37 @@
       listOption.selected = true;
     }
 
-    // Pagination selector
+    // Pagination selector - Mark button only (no manual input)
     const paginationLabel = document.createElement("label");
     paginationLabel.className = "rle-template-label";
     paginationLabel.textContent = "Next Page Button:";
     paginationLabel.style.marginTop = "8px";
 
-    const paginationContainer = document.createElement("div");
-    paginationContainer.className = "rle-pagination-container";
+    const markButton = document.createElement("button");
+    markButton.className = "rle-btn rle-btn-secondary";
+    markButton.textContent = "Mark Button";
+    markButton.type = "button";
+    markButton.style.width = "100%";
 
+    // Hidden input to store the selector
     const paginationInput = document.createElement("input");
-    paginationInput.type = "text";
-    paginationInput.className = "rle-template-input rle-pagination-input";
-    paginationInput.placeholder = "CSS selector (optional)";
+    paginationInput.type = "hidden";
     paginationInput.id = "rle-template-pagination-selector";
     paginationInput.value = isEditing ? (state.currentTemplate.paginationSelector || '') : '';
 
-    const markButton = document.createElement("button");
-    markButton.className = "rle-btn rle-btn-secondary rle-mark-btn";
-    markButton.textContent = "Mark Button";
-    markButton.type = "button";
-
-    paginationContainer.appendChild(paginationInput);
-    paginationContainer.appendChild(markButton);
+    // Info display for selected pagination button
+    const paginationInfo = document.createElement("div");
+    paginationInfo.className = "rle-template-info";
+    paginationInfo.id = "rle-pagination-info";
+    paginationInfo.style.display = paginationInput.value ? "block" : "none";
+    paginationInfo.textContent = paginationInput.value ? "Selected: " + paginationInput.value : "";
 
     multiPageSettings.appendChild(maxPagesLabel);
     multiPageSettings.appendChild(maxPagesSelect);
     multiPageSettings.appendChild(paginationLabel);
-    multiPageSettings.appendChild(paginationContainer);
+    multiPageSettings.appendChild(markButton);
+    multiPageSettings.appendChild(paginationInput);
+    multiPageSettings.appendChild(paginationInfo);
 
     // Toggle multi-page settings visibility
     multiPageCheckbox.onchange = function() {
@@ -194,6 +197,8 @@
 
           if (selector) {
             paginationInput.value = selector;
+            paginationInfo.textContent = "Selected: " + selector;
+            paginationInfo.style.display = "block";
             window.RLE.ui.showToast("Pagination button marked: " + selector, "success");
           } else {
             window.RLE.ui.showToast("No element selected", "info");

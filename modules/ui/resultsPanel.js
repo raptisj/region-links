@@ -20,24 +20,22 @@
   }
 
   /**
-   * Update filter button states
+   * Update filter dropdown and input visibility
    */
-  function updateFilterButtons() {
+  function updateFilterDropdown() {
     const state = window.RLE.state.get();
-    const filterBtns = document.querySelectorAll(".rle-filter-btn");
-    filterBtns.forEach(function(btn) {
-      btn.classList.remove("active");
-      const btnText = btn.textContent.toLowerCase();
-      if (btnText === state.currentFilter) {
-        btn.classList.add("active");
-      }
-    });
+    const filterSelect = document.querySelector(".rle-filter-select");
+    const customInput = document.querySelector(".rle-filter-input");
 
-    // If custom filter, don't highlight buttons
+    if (!filterSelect || !customInput) return;
+
+    filterSelect.value = state.currentFilter;
+
+    // Show/hide custom input based on selection
     if (state.currentFilter === "custom") {
-      filterBtns.forEach(function(btn) {
-        btn.classList.remove("active");
-      });
+      customInput.style.display = "block";
+    } else {
+      customInput.style.display = "none";
     }
   }
 
@@ -206,33 +204,38 @@
     const filterControls = document.createElement("div");
     filterControls.className = "rle-filter-controls";
 
-    // All button
-    const allBtn = document.createElement("button");
-    allBtn.className = "rle-filter-btn" + (state.currentFilter === "all" ? " active" : "");
-    allBtn.textContent = "All";
-    allBtn.onclick = function() {
-      window.RLE.state.set({ currentFilter: "all" });
-      updateFilterButtons();
-      updateFilteredDisplay();
-    };
+    // Filter dropdown
+    const filterSelect = document.createElement("select");
+    filterSelect.className = "rle-filter-select";
+    filterSelect.id = "rle-filter-select";
+    filterSelect.name = "filter";
 
-    // Internal button
-    const internalBtn = document.createElement("button");
-    internalBtn.className = "rle-filter-btn" + (state.currentFilter === "internal" ? " active" : "");
-    internalBtn.textContent = "Internal";
-    internalBtn.onclick = function() {
-      window.RLE.state.set({ currentFilter: "internal" });
-      updateFilterButtons();
-      updateFilteredDisplay();
-    };
+    const allOption = document.createElement("option");
+    allOption.value = "all";
+    allOption.textContent = "All";
 
-    // External button
-    const externalBtn = document.createElement("button");
-    externalBtn.className = "rle-filter-btn" + (state.currentFilter === "external" ? " active" : "");
-    externalBtn.textContent = "External";
-    externalBtn.onclick = function() {
-      window.RLE.state.set({ currentFilter: "external" });
-      updateFilterButtons();
+    const internalOption = document.createElement("option");
+    internalOption.value = "internal";
+    internalOption.textContent = "Internal";
+
+    const externalOption = document.createElement("option");
+    externalOption.value = "external";
+    externalOption.textContent = "External";
+
+    const customOption = document.createElement("option");
+    customOption.value = "custom";
+    customOption.textContent = "Domain or Keyword";
+
+    filterSelect.appendChild(allOption);
+    filterSelect.appendChild(internalOption);
+    filterSelect.appendChild(externalOption);
+    filterSelect.appendChild(customOption);
+
+    filterSelect.value = state.currentFilter;
+    filterSelect.onchange = function(e) {
+      const newFilter = e.target.value;
+      window.RLE.state.set({ currentFilter: newFilter });
+      updateFilterDropdown();
       updateFilteredDisplay();
     };
 
@@ -240,26 +243,19 @@
     const customInput = document.createElement("input");
     customInput.type = "text";
     customInput.className = "rle-filter-input";
+    customInput.id = "rle-filter-input";
+    customInput.name = "customFilter";
     customInput.placeholder = "Filter by domain or keyword...";
     customInput.value = state.customFilterValue;
+    customInput.style.display = state.currentFilter === "custom" ? "block" : "none";
     customInput.oninput = function(e) {
       window.RLE.state.set({
-        customFilterValue: e.target.value,
-        currentFilter: "custom"
+        customFilterValue: e.target.value
       });
-      updateFilterButtons();
       updateFilteredDisplay();
     };
 
-    filterControls.appendChild(allBtn);
-    filterControls.appendChild(internalBtn);
-    filterControls.appendChild(externalBtn);
-    filterControls.appendChild(customInput);
-
     // Selection controls (Toggle Select All)
-    const selectionControls = document.createElement("div");
-    selectionControls.className = "rle-selection-controls";
-
     const toggleSelectBtn = document.createElement("button");
     toggleSelectBtn.className = "rle-selection-btn";
     toggleSelectBtn.textContent = "Deselect All";
@@ -274,11 +270,12 @@
       toggleSelectBtn.textContent = allChecked ? "Select All" : "Deselect All";
     };
 
-    selectionControls.appendChild(toggleSelectBtn);
+    filterControls.appendChild(filterSelect);
+    filterControls.appendChild(customInput);
+    filterControls.appendChild(toggleSelectBtn);
 
     filterSection.appendChild(filterLabel);
     filterSection.appendChild(filterControls);
-    filterSection.appendChild(selectionControls);
     panel.appendChild(filterSection);
 
     const linksList = document.createElement("div");

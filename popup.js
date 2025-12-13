@@ -13,6 +13,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     cleanUrlsCheckbox.checked = result.cleanUrls || false;
   }
 
+  // Settings toggle
+  const settingsToggle = document.getElementById("settingsToggle");
+  const settingsSection = document.getElementById("settingsSection");
+  const container = document.querySelector(".container");
+
+  settingsToggle.addEventListener("click", () => {
+    const isOpen = settingsSection.classList.toggle("visible");
+    settingsToggle.classList.toggle("active");
+    container.classList.toggle("settings-open");
+
+    // Change icon between cog and X
+    settingsToggle.textContent = isOpen ? "✕" : "⚙️";
+  });
+
   const radioButtons = document.querySelectorAll('input[name="exportMode"]');
   radioButtons.forEach((radio) => {
     radio.addEventListener("change", async (e) => {
@@ -157,14 +171,17 @@ async function loadTemplates() {
     const allTemplates = result.templates || [];
     const templates = allTemplates.filter((t) => t.domain === domain);
 
-    if (templates.length === 0) {
-      document.getElementById("templatesSection").style.display = "none";
-      return;
-    }
-
     document.getElementById("templatesSection").style.display = "block";
     const templatesList = document.getElementById("templatesList");
     templatesList.innerHTML = "";
+
+    if (templates.length === 0) {
+      const emptyMessage = document.createElement("div");
+      emptyMessage.className = "templates-empty-message";
+      emptyMessage.textContent = "No templates. Select a region and create one!";
+      templatesList.appendChild(emptyMessage);
+      return;
+    }
 
     templates.forEach((template) => {
       const item = document.createElement("div");

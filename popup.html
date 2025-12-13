@@ -21,11 +21,53 @@
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
 
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+
       h1 {
-        margin: 0 0 16px 0;
+        margin: 0;
         font-size: 18px;
         font-weight: 600;
         color: #333;
+      }
+
+      .settings-icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 4px;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: background 0.2s, transform 0.2s;
+        font-size: 18px;
+      }
+
+      .settings-icon:hover {
+        background: #f0f0f0;
+        transform: scale(1.1);
+      }
+
+      .settings-icon.active {
+        background: #f0f0f0;
+      }
+
+      .container.settings-open .section:not(#settingsSection .section),
+      .container.settings-open #templatesSection,
+      .container.settings-open .start-button,
+      .container.settings-open .footer {
+        visibility: hidden;
+        height: 0;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
       }
 
       .section {
@@ -135,6 +177,15 @@
         text-align: center;
       }
 
+      .settings-section {
+        display: none;
+        margin-bottom: 16px;
+      }
+
+      .settings-section.visible {
+        display: block;
+      }
+
       .setting-row {
         display: flex;
         align-items: center;
@@ -209,11 +260,32 @@
       .template-delete:hover {
         color: #f44336;
       }
+
+      .templates-empty-message {
+        padding: 12px;
+        text-align: center;
+        font-size: 12px;
+        color: #999;
+        font-style: italic;
+      }
     </style>
   </head>
   <body>
     <div class="container">
-      <h1>RegionLinks</h1>
+      <div class="header">
+        <h1>RegionLinks</h1>
+        <button id="settingsToggle" class="settings-icon" title="Settings">⚙️</button>
+      </div>
+
+      <div id="settingsSection" class="settings-section">
+        <div class="section">
+          <span class="section-label">Settings:</span>
+          <label class="setting-row">
+            <input type="checkbox" id="cleanUrlsCheckbox" />
+            <span>Clean URLs (strip tracking parameters)</span>
+          </label>
+        </div>
+      </div>
 
       <div class="section">
         <span class="section-label">Export Format:</span>
@@ -253,15 +325,7 @@
         </div>
       </div>
 
-      <div class="section">
-        <span class="section-label">Settings:</span>
-        <label class="setting-row">
-          <input type="checkbox" id="cleanUrlsCheckbox" />
-          <span>Clean URLs (strip tracking parameters)</span>
-        </label>
-      </div>
-
-      <div id="templatesSection" class="section" style="display: none">
+      <div id="templatesSection" class="section">
         <span class="section-label">Saved Templates:</span>
         <div id="templatesList" class="templates-list"></div>
       </div>

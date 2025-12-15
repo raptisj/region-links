@@ -65,27 +65,6 @@
     autoRunLabel.appendChild(autoRunCheckbox);
     autoRunLabel.appendChild(autoRunText);
 
-    // Use full list checkbox
-    const useContainerLabel = document.createElement("label");
-    useContainerLabel.className = "rle-template-checkbox-label";
-
-    const useContainerCheckbox = document.createElement("input");
-    useContainerCheckbox.type = "checkbox";
-    useContainerCheckbox.id = "rle-template-use-container";
-    useContainerCheckbox.checked = isEditing ? (state.currentTemplate.useContainerInsteadOfViewport || false) : false;
-
-    const useContainerText = document.createElement("span");
-    useContainerText.textContent = "Use full list (entire container) instead of visible area";
-
-    useContainerLabel.appendChild(useContainerCheckbox);
-    useContainerLabel.appendChild(useContainerText);
-
-    // Container selector display (read-only, for info)
-    const containerInfo = document.createElement("div");
-    containerInfo.className = "rle-template-info";
-    containerInfo.style.display = "none";
-    containerInfo.id = "rle-container-info";
-
     // Multi-page checkbox
     const multiPageLabel = document.createElement("label");
     multiPageLabel.className = "rle-template-checkbox-label";
@@ -130,14 +109,14 @@
       option.textContent = val + " pages";
       if (isEditing && state.currentTemplate.maxPages === val) {
         option.selected = true;
-      } else if (!isEditing && val === 5) {
-        option.selected = true;
       }
       maxPagesSelect.appendChild(option);
     });
 
-    // Select "List" if editing and maxPages is high
-    if (isEditing && state.currentTemplate.maxPages >= 50) {
+    // Select "List" by default for new templates, or if editing and maxPages is high
+    if (!isEditing) {
+      listOption.selected = true;
+    } else if (isEditing && state.currentTemplate.maxPages >= 50) {
       listOption.selected = true;
     }
 
@@ -248,25 +227,11 @@
         multiPage: multiPageCheckbox.checked,
         maxPages: maxPagesValue,
         paginationSelector: paginationInput.value.trim() || null,
-        useContainerInsteadOfViewport: useContainerCheckbox.checked,
-        containerSelector: null, // Will be detected on save
-        autoScroll: false, // Default for now
-        maxScrollSteps: 10 // Default
+        useContainerInsteadOfViewport: false,
+        containerSelector: null,
+        autoScroll: false,
+        maxScrollSteps: 10
       };
-
-      // Detect container if "use full list" is enabled
-      if (useContainerCheckbox.checked && state.lastSelectionRect) {
-        const linkElements = window.RLE.links.extractLinkElements(state.lastSelectionRect);
-        if (linkElements && linkElements.length > 0) {
-          const containerSelector = window.RLE.links.detectContainer(linkElements);
-          if (containerSelector) {
-            multiPageSettings.containerSelector = containerSelector;
-            console.log("[RegionLinks] Detected container:", containerSelector);
-          } else {
-            window.RLE.ui.showToast("Could not detect container - will use region selection", "warning");
-          }
-        }
-      }
 
       if (isEditing) {
         await window.RLE.templates.updateTemplate(state.currentTemplate.id, templateName, autoRunCheckbox.checked, multiPageSettings);
@@ -274,46 +239,6 @@
       } else {
         await window.RLE.templates.saveTemplate(templateName, autoRunCheckbox.checked, multiPageSettings);
         window.RLE.ui.showToast("Template saved successfully!", "success");
-      }
-
-      // If "Use full list" was enabled and container was detected, re-extract and update results panel
-      if (useContainerCheckbox.checked && multiPageSettings.containerSelector) {
-        console.log("[RegionLinks] Re-extracting with container after save:", multiPageSettings.containerSelector);
-
-        // Get current template from state (it was just saved/updated)
-        const currentTemplate = window.RLE.state.get('currentTemplate');
-
-        // Extract from container
-        const links = window.RLE.links.extractFromContainer(
-          multiPageSettings.containerSelector,
-          currentTemplate || {
-            cleanUrls: state.cleanUrls,
-            currentFilter: state.currentFilter,
-            customFilterValue: state.customFilterValue
-          }
-        );
-
-        if (links.length > 0) {
-          // Apply filters
-          const currentPageDomain = new URL(window.location.href).hostname;
-          const filteredLinks = window.RLE.links.filterLinks(
-            links,
-            state.currentFilter || 'all',
-            state.customFilterValue || '',
-            currentPageDomain
-          );
-
-          // Close existing panel first
-          window.RLE.ui.closeResultsPanel();
-
-          // Then update state and show new results panel
-          window.RLE.state.set({ extractedLinks: filteredLinks });
-          window.RLE.ui.showResultsPanel(filteredLinks);
-
-          console.log("[RegionLinks] Results panel updated with", filteredLinks.length, "links from container");
-        } else {
-          window.RLE.ui.showToast("No links found in container", "warning");
-        }
       }
 
       dialog.remove();
@@ -326,8 +251,6 @@
     dialog.appendChild(nameLabel);
     dialog.appendChild(nameInput);
     dialog.appendChild(autoRunLabel);
-    dialog.appendChild(useContainerLabel);
-    dialog.appendChild(containerInfo);
     dialog.appendChild(multiPageLabel);
     dialog.appendChild(multiPageSettings);
     dialog.appendChild(buttons);

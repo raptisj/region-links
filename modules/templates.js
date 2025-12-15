@@ -17,7 +17,7 @@
     return {
       ...template,
       multiPage: template.multiPage !== undefined ? template.multiPage : false,
-      maxPages: template.maxPages || 5,
+      maxPages: template.maxPages || 999,
       paginationSelector: template.paginationSelector || null,
       useContainerInsteadOfViewport: template.useContainerInsteadOfViewport !== undefined ? template.useContainerInsteadOfViewport : false,
       containerSelector: template.containerSelector || null,
@@ -59,7 +59,7 @@
       createdAt: new Date().toISOString(),
       // Multi-page fields
       multiPage: multiPageSettings?.multiPage || false,
-      maxPages: multiPageSettings?.maxPages || 5,
+      maxPages: multiPageSettings?.maxPages || 999,
       paginationSelector: multiPageSettings?.paginationSelector || null,
       useContainerInsteadOfViewport: multiPageSettings?.useContainerInsteadOfViewport || false,
       containerSelector: multiPageSettings?.containerSelector || null,

@@ -12,6 +12,7 @@
     isActive: false,
     exportMode: "urls",
     cleanUrls: false,
+    ignoreNestedAnchors: true,
     overlay: null,
     selectionBox: null,
     startX: 0,
@@ -57,6 +58,7 @@
       state.isActive = false;
       state.exportMode = "urls";
       state.cleanUrls = false;
+      state.ignoreNestedAnchors = true;
       state.overlay = null;
       state.selectionBox = null;
       state.startX = 0;

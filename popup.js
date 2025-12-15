@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", async () => {
 
-  const result = await chrome.storage.sync.get(["exportMode", "cleanUrls"]);
+  const result = await chrome.storage.sync.get(["exportMode", "cleanUrls", "ignoreNestedAnchors"]);
   if (result.exportMode) {
     const radio = document.querySelector(`input[value="${result.exportMode}"]`);
     if (radio) {
@@ -11,6 +11,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   const cleanUrlsCheckbox = document.getElementById("cleanUrlsCheckbox");
   if (cleanUrlsCheckbox) {
     cleanUrlsCheckbox.checked = result.cleanUrls || false;
+  }
+
+  const ignoreNestedAnchorsCheckbox = document.getElementById("ignoreNestedAnchorsCheckbox");
+  if (ignoreNestedAnchorsCheckbox) {
+    ignoreNestedAnchorsCheckbox.checked = result.ignoreNestedAnchors !== false;
   }
 
   // Settings toggle
@@ -37,6 +42,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (cleanUrlsCheckbox) {
     cleanUrlsCheckbox.addEventListener("change", async (e) => {
       await chrome.storage.sync.set({ cleanUrls: e.target.checked });
+    });
+  }
+
+  if (ignoreNestedAnchorsCheckbox) {
+    ignoreNestedAnchorsCheckbox.addEventListener("change", async (e) => {
+      await chrome.storage.sync.set({ ignoreNestedAnchors: e.target.checked });
     });
   }
 
@@ -72,6 +83,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const cleanUrlsCheckbox = document.getElementById("cleanUrlsCheckbox");
       const cleanUrls = cleanUrlsCheckbox ? cleanUrlsCheckbox.checked : false;
+
+      const ignoreNestedAnchorsCheckbox = document.getElementById("ignoreNestedAnchorsCheckbox");
+      const ignoreNestedAnchors = ignoreNestedAnchorsCheckbox ? ignoreNestedAnchorsCheckbox.checked : true;
 
       let isLoaded = false;
       try {
@@ -121,6 +135,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         action: "START_SELECTION",
         exportMode: selectedMode,
         cleanUrls: cleanUrls,
+        ignoreNestedAnchors: ignoreNestedAnchors,
       });
 
       showStatus(

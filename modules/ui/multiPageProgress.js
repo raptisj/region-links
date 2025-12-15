@@ -70,8 +70,12 @@
     // Handle cancel button
     const cancelBtn = document.getElementById('rle-cancel-multipage');
     if (cancelBtn) {
-      cancelBtn.onclick = async function() {
-        console.log('[RegionLinks] Multi-page extraction cancelled by user');
+      cancelBtn.onclick = async function(event) {
+        // Prevent any event bubbling
+        event.stopPropagation();
+        event.preventDefault();
+
+        console.log('[RegionLinks] Multi-page extraction cancelled by user (button clicked)');
         await chrome.storage.local.remove('rle_multiPageState');
         window.RLE.ui.hideMultiPageProgress();
         window.RLE.ui.showToast('Multi-page extraction cancelled', 'info');

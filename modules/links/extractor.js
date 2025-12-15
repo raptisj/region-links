@@ -9,6 +9,22 @@
   window.RLE.links = window.RLE.links || {};
 
   /**
+   * Check if an anchor element is nested within another anchor
+   * @param {HTMLElement} anchor - The anchor element to check
+   * @returns {boolean} True if the anchor has another anchor as an ancestor
+   */
+  function isNestedAnchor(anchor) {
+    let parent = anchor.parentElement;
+    while (parent) {
+      if (parent.tagName === 'A') {
+        return true;
+      }
+      parent = parent.parentElement;
+    }
+    return false;
+  }
+
+  /**
    * Show a "no links" message panel
    */
   function showNoLinksMessage() {
@@ -69,6 +85,11 @@
 
       if (intersects) {
         if (rect.width === 0 || rect.height === 0) {
+          return;
+        }
+
+        // Skip nested anchors if the setting is enabled
+        if (state.ignoreNestedAnchors && isNestedAnchor(anchor)) {
           return;
         }
 
@@ -277,7 +298,7 @@
     // Find container
     let container = document.querySelector(containerSelector);
     if (!container) {
-      console.error('Container not found:', containerSelector);
+      // Silently return empty array - the caller will handle fallback
       return [];
     }
 
@@ -309,6 +330,14 @@
 
       // Skip invisible links (but be lenient - some links wrap visible children)
       if (rect.width === 0 || rect.height === 0) {
+        return;
+      }
+
+      // Skip nested anchors if the setting is enabled
+      const ignoreNestedAnchors = template && typeof template.ignoreNestedAnchors !== 'undefined'
+        ? template.ignoreNestedAnchors
+        : state.ignoreNestedAnchors;
+      if (ignoreNestedAnchors && isNestedAnchor(anchor)) {
         return;
       }
 
@@ -397,6 +426,11 @@
 
     return uniqueLinks;
   };
+
+  /**
+   * Export isNestedAnchor helper for use in other modules
+   */
+  window.RLE.links.isNestedAnchor = isNestedAnchor;
 
   /**
    * Helper to extract link elements (actual DOM elements) from selection

@@ -22,7 +22,8 @@
       useContainerInsteadOfViewport: template.useContainerInsteadOfViewport !== undefined ? template.useContainerInsteadOfViewport : false,
       containerSelector: template.containerSelector || null,
       autoScroll: template.autoScroll !== undefined ? template.autoScroll : false,
-      maxScrollSteps: template.maxScrollSteps || 10
+      maxScrollSteps: template.maxScrollSteps || 10,
+      ignoreNestedAnchors: template.ignoreNestedAnchors !== false
     };
   }
 
@@ -52,6 +53,7 @@
       selectionRect: state.lastSelectionRect,
       exportMode: state.exportMode,
       cleanUrls: state.cleanUrls,
+      ignoreNestedAnchors: state.ignoreNestedAnchors,
       currentFilter: state.currentFilter,
       customFilterValue: state.customFilterValue,
       createdAt: new Date().toISOString(),
@@ -109,6 +111,7 @@
       // Update other settings
       templates[templateIndex].exportMode = state.exportMode;
       templates[templateIndex].cleanUrls = state.cleanUrls;
+      templates[templateIndex].ignoreNestedAnchors = state.ignoreNestedAnchors;
       templates[templateIndex].currentFilter = state.currentFilter;
       templates[templateIndex].customFilterValue = state.customFilterValue;
       templates[templateIndex].updatedAt = new Date().toISOString();
@@ -168,6 +171,7 @@
     window.RLE.state.set({
       exportMode: template.exportMode,
       cleanUrls: template.cleanUrls,
+      ignoreNestedAnchors: template.ignoreNestedAnchors,
       currentFilter: template.currentFilter || "all",
       customFilterValue: template.customFilterValue || "",
       currentTemplate: template,
@@ -252,12 +256,154 @@
   };
 
   /**
+   * Helper function to extract links from a selection rectangle
+   * @param {Object} selectionRect - Rectangle coordinates
+   * @param {Object} template - Template object
+   * @returns {Array} Array of extracted links
+   */
+  function extractLinksFromRect(selectionRect, template) {
+    console.log('[RegionLinks] extractLinksFromRect called with:', selectionRect);
+
+    const anchors = document.querySelectorAll('a[href]');
+    console.log('[RegionLinks] Total anchors on page:', anchors.length);
+
+    const extractedLinks = [];
+    let intersectingAnchors = 0;
+    let visibleIntersectingAnchors = 0;
+
+    anchors.forEach(function(anchor, index) {
+      const rect = anchor.getBoundingClientRect();
+
+      const intersects = !(
+        rect.right < selectionRect.left ||
+        rect.left > selectionRect.right ||
+        rect.bottom < selectionRect.top ||
+        rect.top > selectionRect.bottom
+      );
+
+      if (intersects) {
+        intersectingAnchors++;
+        if (rect.width > 0 && rect.height > 0) {
+          visibleIntersectingAnchors++;
+        }
+      }
+
+      if (intersects && rect.width > 0 && rect.height > 0) {
+        // Skip nested anchors if the setting is enabled
+        const ignoreNestedAnchors = template.ignoreNestedAnchors !== false;
+        if (ignoreNestedAnchors && window.RLE.links.isNestedAnchor(anchor)) {
+          return;
+        }
+
+        let text = (anchor.innerText || anchor.textContent || '').trim();
+
+        if (!text) {
+          text = anchor.getAttribute('aria-label') || anchor.getAttribute('title') || '';
+        }
+
+        if (!text) {
+          const img = anchor.querySelector('img');
+          if (img) {
+            text = img.getAttribute('alt') || img.getAttribute('title') || '';
+          }
+        }
+
+        if (!text) {
+          const svg = anchor.querySelector('svg');
+          if (svg) {
+            const titleElement = svg.querySelector('title');
+            if (titleElement) {
+              text = titleElement.textContent || '';
+            }
+            if (!text) {
+              text = svg.getAttribute('aria-label') || '';
+            }
+          }
+        }
+
+        if (!text) {
+          try {
+            const urlObj = new URL(anchor.href);
+            const hostname = urlObj.hostname.replace(/^www\./, '');
+            const pathParts = urlObj.pathname.split('/').filter(function(p) { return p; });
+            const domainParts = hostname.split('.');
+            const mainDomain = domainParts.length > 1 ? domainParts[domainParts.length - 2] : domainParts[0];
+            const capitalizedDomain = mainDomain.charAt(0).toUpperCase() + mainDomain.slice(1);
+            text = pathParts.length > 0
+              ? capitalizedDomain + ' - ' + (pathParts[0].charAt(0).toUpperCase() + pathParts[0].slice(1))
+              : capitalizedDomain;
+          } catch (e) {
+            text = 'Link';
+          }
+        }
+
+        text = text.trim();
+        const url = window.RLE.urlUtils.normalize(anchor.href, template.cleanUrls);
+
+        extractedLinks.push({
+          text: text,
+          url: url,
+          index: index,
+          top: rect.top,
+          left: rect.left
+        });
+      }
+    });
+
+    console.log('[RegionLinks] Extraction results:', {
+      totalAnchors: anchors.length,
+      intersectingAnchors: intersectingAnchors,
+      visibleIntersectingAnchors: visibleIntersectingAnchors,
+      extracted: extractedLinks.length
+    });
+
+    // If we found 0 links, let's check if there are links visible on screen
+    if (extractedLinks.length === 0 && anchors.length > 0) {
+      console.log('[RegionLinks] No links in rectangle. Checking first few anchor positions:');
+      for (let i = 0; i < Math.min(5, anchors.length); i++) {
+        const anchor = anchors[i];
+        const rect = anchor.getBoundingClientRect();
+        console.log(`Anchor ${i}:`, {
+          href: anchor.href,
+          text: anchor.textContent?.substring(0, 30),
+          rect: { top: rect.top, left: rect.left, bottom: rect.bottom, right: rect.right },
+          visible: rect.width > 0 && rect.height > 0
+        });
+      }
+    }
+
+    return extractedLinks;
+  }
+
+  /**
    * Extract links from current page during multi-page extraction
    * @param {Object} template - Template object
    * @param {Object} multiPageState - Multi-page state object
    */
   window.RLE.templates.extractCurrentPage = async function(template, multiPageState) {
-    console.log('[RegionLinks] Extracting from page', multiPageState.currentPage);
+    console.log('[RegionLinks] === EXTRACTING PAGE ===');
+    console.log('[RegionLinks] Our page counter:', multiPageState.currentPage);
+    console.log('[RegionLinks] Current URL:', window.location.href);
+    console.log('[RegionLinks] Current state:', JSON.stringify({
+      currentPage: multiPageState.currentPage,
+      maxPages: multiPageState.maxPages,
+      resultsSoFar: multiPageState.allResults?.length || 0,
+      isRunning: multiPageState.isRunning
+    }));
+
+    // Try to detect actual page number from LinkedIn's UI
+    try {
+      const pageIndicator = document.querySelector('[aria-label*="Page"]') ||
+                           document.querySelector('.artdeco-pagination__indicator--number.active') ||
+                           document.querySelector('.active-page');
+      if (pageIndicator) {
+        console.log('[RegionLinks] LinkedIn page indicator text:', pageIndicator.textContent.trim());
+      } else {
+        console.log('[RegionLinks] No LinkedIn page indicator found in DOM');
+      }
+    } catch (e) {
+      console.log('[RegionLinks] Could not detect page indicator:', e.message);
+    }
 
     // Extract links based on template settings
     let links = [];
@@ -266,79 +412,16 @@
       // Container-based extraction
       console.log('[RegionLinks] Using container extraction:', template.containerSelector);
       links = window.RLE.links.extractFromContainer(template.containerSelector, template);
+
+      // Fallback: if container not found or no links, try using the selection rectangle
+      if (links.length === 0 && template.selectionRect) {
+        console.log('[RegionLinks] Container extraction failed, falling back to selection rectangle');
+        links = extractLinksFromRect(template.selectionRect, template);
+      }
     } else {
       // Region-based extraction
       console.log('[RegionLinks] Using region extraction');
-      // We need to extract but not show results panel
-      const state = window.RLE.state.get();
-      const anchors = document.querySelectorAll('a[href]');
-      const selectionRect = template.selectionRect;
-
-      anchors.forEach(function(anchor, index) {
-        const rect = anchor.getBoundingClientRect();
-
-        const intersects = !(
-          rect.right < selectionRect.left ||
-          rect.left > selectionRect.right ||
-          rect.bottom < selectionRect.top ||
-          rect.top > selectionRect.bottom
-        );
-
-        if (intersects && rect.width > 0 && rect.height > 0) {
-          let text = (anchor.innerText || anchor.textContent || '').trim();
-
-          if (!text) {
-            text = anchor.getAttribute('aria-label') || anchor.getAttribute('title') || '';
-          }
-
-          if (!text) {
-            const img = anchor.querySelector('img');
-            if (img) {
-              text = img.getAttribute('alt') || img.getAttribute('title') || '';
-            }
-          }
-
-          if (!text) {
-            const svg = anchor.querySelector('svg');
-            if (svg) {
-              const titleElement = svg.querySelector('title');
-              if (titleElement) {
-                text = titleElement.textContent || '';
-              }
-              if (!text) {
-                text = svg.getAttribute('aria-label') || '';
-              }
-            }
-          }
-
-          if (!text) {
-            try {
-              const urlObj = new URL(anchor.href);
-              const hostname = urlObj.hostname.replace(/^www\./, '');
-              const pathParts = urlObj.pathname.split('/').filter(function(p) { return p; });
-              const domainParts = hostname.split('.');
-              const mainDomain = domainParts.length > 1 ? domainParts[domainParts.length - 2] : domainParts[0];
-              const capitalizedDomain = mainDomain.charAt(0).toUpperCase() + mainDomain.slice(1);
-              text = pathParts.length > 0
-                ? capitalizedDomain + ' - ' + (pathParts[0].charAt(0).toUpperCase() + pathParts[0].slice(1))
-                : capitalizedDomain;
-            } catch (e) {
-              text = 'Link';
-            }
-          }
-
-          text = text.trim();
-          const url = window.RLE.urlUtils.normalize(anchor.href, template.cleanUrls);
-
-          links.push({
-            text: text,
-            url: url,
-            index: index,
-            top: rect.top,
-            left: rect.left
-          });
-        }
-      });
+      links = extractLinksFromRect(template.selectionRect, template);
     }
 
     // Ensure allResults is initialized
@@ -374,7 +457,7 @@
 
     // Find next page button
     console.log('[RegionLinks] Looking for next button with selector:', template.paginationSelector);
-    const nextButton = findNextPageButton(template.paginationSelector);
+    let nextButton = findNextPageButton(template.paginationSelector);
 
     if (!nextButton) {
       console.log('[RegionLinks] ✓ No more pages available - extraction complete');
@@ -388,9 +471,9 @@
 
     // Prepare for navigation or dynamic loading
     multiPageState.currentPage++;
+    console.log('[RegionLinks] Incrementing to page', multiPageState.currentPage);
     await chrome.storage.local.set({ rle_multiPageState: multiPageState });
-
-    console.log('[RegionLinks] Clicking button for page', multiPageState.currentPage);
+    console.log('[RegionLinks] State saved, about to click button for page', multiPageState.currentPage);
 
     // Detect if this is a navigation or dynamic content loading
     const currentUrl = window.location.href;
@@ -441,6 +524,14 @@
     try {
       const rect = nextButton.getBoundingClientRect();
 
+      console.log('[RegionLinks] >>> CLICKING NEXT BUTTON <<<');
+      console.log('[RegionLinks] Button rect:', rect);
+
+      // Just use the simple click method to avoid potential double-clicks
+      nextButton.click();
+      console.log('[RegionLinks] Click event dispatched');
+
+      /* COMMENTED OUT - too many events might cause multiple navigations
       // Pointer events
       nextButton.dispatchEvent(new PointerEvent('pointerdown', {
         view: window, bubbles: true, cancelable: true,
@@ -488,6 +579,7 @@
       nextButton.dispatchEvent(new KeyboardEvent('keydown', {
         key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true, cancelable: true
       }));
+      */
     } catch (e) {
       console.warn('[RegionLinks] Click attempt failed:', e);
     }
@@ -502,10 +594,17 @@
 
     if (navigationOccurred || window.location.href !== currentUrl) {
       console.log('[RegionLinks] Navigation detected - continuing on new page');
+      console.log('[RegionLinks] Previous URL:', currentUrl);
+      console.log('[RegionLinks] Current URL:', window.location.href);
+      console.log('[RegionLinks] State will be resumed by navigationHandler on new page');
       window.RLE.multiPage.setupNavigationContinuation();
+      // Don't call extractCurrentPage here - let the navigationHandler do it on the new page
     } else {
+      console.log('[RegionLinks] Dynamic content loading detected (no navigation)');
       await waitForDynamicContent(template);
-      await window.RLE.templates.extractCurrentPage(template, multiPageState);
+      // Reload state in case it was updated
+      const reloadedState = await chrome.storage.local.get('rle_multiPageState');
+      await window.RLE.templates.extractCurrentPage(template, reloadedState.rle_multiPageState);
     }
   };
 
